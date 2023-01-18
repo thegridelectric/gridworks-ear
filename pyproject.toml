@@ -55,9 +55,6 @@ myst-parser = {version = ">=0.16.1"}
 [tool.poetry.scripts]
 gridworks-ear = "gear.__main__:main"
 
-[tool.poetry.group.dev.dependencies]
-ipykernel = "^6.19.4"
-
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
 tests = ["tests", "*/tests"]
