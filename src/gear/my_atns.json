@@ -1,0 +1,27 @@
+
+{    
+    "dwjess": 
+    {
+        "AtomicTNodeAliasList": [
+            "dwjess.isone.ct.newhaven.orange1"
+        ]
+    },
+    "dwandy":
+    {
+        "AtomicTNodeAliasList": [
+            "dwandy.isone.ct.newhaven.orange1"
+        ]
+    },
+    "dwtest":
+    {
+        "AtomicTNodeAliasList": [
+            "dwtest.isone.ct.newhaven.orange1"
+        ]
+    },
+    "w":
+    {
+        "AtomicTNodeAliasList": [
+            "w.isone.ct.newhaven.orange1"
+        ]
+    }
+}
