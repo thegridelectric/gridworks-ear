@@ -13,6 +13,7 @@ __pycache__/
 .DS_Store
 .vscode
 .idea
+.env
 
 # scratch files and folders
 scratch*
