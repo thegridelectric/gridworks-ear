@@ -23,7 +23,7 @@ class EarSettings(GNodeSettings):
     """Settings for the GridWorks ear."""
     g_node_alias: str = "d1.ear"
     world_instance_alias: str = "d1__1"
-    g_node_data_type: str = '{"EarDns": "localhost", "WorldInstanceAlias": "dwtest__1", "AtomicTNodeAliasList": ["dwtest.isone.ct.newhaven.orange1"], "ScadaAliasList": ["dwtest.isone.ct.newhaven.orange1.ta.scada"], "TypeAlias": "ear.g.node.alias.list.toss.100"}'
+    g_node_data_type: str = '{"EarDns": "localhost", "WorldInstanceAlias": "dwtest__1", "AtomicTNodeAliasList": ["dwtest.isone.ct.newhaven.orange1"], "ScadaAliasList": ["dwtest.isone.ct.newhaven.orange1.scada"], "TypeName": "ear.g.node.alias.list.toss", "Versiion": "100"}'
     my_fqdn: str = "d1-1.electricity.works"
     aws: AwsClient = AwsClient()
     slack: SlackClient = SlackClient()

@@ -7,10 +7,6 @@ import pendulum
 
 DEFAULT_STEP_DURATION = 0.1
 
-class MessageFormatType(enum.Enum):
-    JSON = "Json"
-    GW_SERIAL = "GwSerial"
-
 
 class WorldType(enum.Enum):
     REAL = "Real"

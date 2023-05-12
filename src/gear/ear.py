@@ -2,7 +2,9 @@ import uuid
 import time
 import os
 import json
+from pathlib import Path
 import threading
+from dataclasses import dataclass
 from typing import no_type_check
 import logging
 import boto3
@@ -11,6 +13,7 @@ import pendulum
 from pydantic import BaseModel
 from slack_sdk.webhook import WebhookClient
 
+from gridworks.enums import MessageCategory
 from gridworks.actor_base import ActorBase, OnReceiveMessageDiagnostic
 from gridworks.message import as_enum
 from gridworks.utils import responsive_sleep
@@ -21,7 +24,6 @@ from gear.config import EarSettings
 from gear.utils import (
     BasicLog,
     EarWarningType,
-    MessageFormatType,
     send_warning_to_slack,
 )
 
@@ -36,6 +38,7 @@ LOGGER.setLevel(logging.INFO)
 
 DEV_OUTPUT_ROOT = "output/"
 
+MINIMUM_SCADA_REPORT_SECONDS = 10 * 60
 
 def get_folder_size(bucket, prefix):
     total_size = 0
@@ -50,9 +53,17 @@ class MessagePlus(BaseModel):
     LogNote: str
     BodyBytes: bytes
 
+@dataclass
+class MessageState:
+    message_time: pendulum.datetime
+    reported_state: bool
 
 class Ear(ActorBase):
-    NEW_FOLDER_TRIGGER_MEGA_BYTES = 5
+    cron_last_min_file: Path
+    cron_last_hour_file: Path
+    cron_last_day_file: Path
+    message_times: dict[str, MessageState]
+
     
     def __init__(self, settings: EarSettings):
         super().__init__(settings=settings)
@@ -61,7 +72,6 @@ class Ear(ActorBase):
             self.settings.universe_type_value, UniverseType, UniverseType.default()
         )
         self.check_universe_type()
-        self.settings=settings
         self.s3_resource = boto3.resource("s3")
         self.s3_put_works: bool = False
 
@@ -72,7 +82,7 @@ class Ear(ActorBase):
         now = int(time.time())
         self.webhook = WebhookClient(url=self.settings.slack.web_hook_url)
         self._messages_heard_this_hour = 0
-        self._s3_time_based_subfolder_name = self.time_based_subfolder_name_from_unix_s(time.time())
+        self._s3_time_based_subfolder_name = self.time_based_subfolder_name_from_unix_s(int(time.time()))
         self._last_min_cron_s = now - (now % 300)
         self._last_hour_cron_s = now - (now % 3600)
         self._last_day_cron_s = now - (now % 86400)
@@ -137,6 +147,7 @@ class Ear(ActorBase):
     ########################
     ## Receives
     ########################
+
     @no_type_check
     def on_message(self, _unused_channel, basic_deliver, properties, body) -> None:
         """Overriding actor_base on_message
@@ -146,6 +157,7 @@ class Ear(ActorBase):
             f"{self.alias}: Got {basic_deliver.routing_key} with delivery tag {basic_deliver.delivery_tag}"
         )
         self.acknowledge_message(basic_deliver.delivery_tag)
+
         try:
             type_name = self.get_payload_type_name(basic_deliver)
         except SchemaError:
@@ -162,41 +174,44 @@ class Ear(ActorBase):
             return
         
         self._messages_heard_this_hour += 1
-        # TODO: get message format type from routing key
-        message_format_type = MessageFormatType.GW_SERIAL
-        if message_format_type == MessageFormatType.GW_SERIAL:
+
+        try:
+            msg_category = self.message_category_from_routing_key(routing_key)
+        except SchemaError:
+            return
+
+        kafka_topic = f"{from_alias}-{type_name}"
+        if msg_category == MessageCategory.RabbitGwSerial:
             file_name = f"{kafka_topic}-{int(time.time() * 1000)}-{self.settings.my_fqdn}.txt"
         else:
             file_name = f"{kafka_topic}-{int(time.time() * 1000)}-{self.settings.my_fqdn}.json"
-        kafka_topic: str = f"{from_alias}-{type_name}"
         if self.s3_put_works:
             success_putting_this_one = self.put_in_s3(file_name, body)
         else:
             success_putting_this_one = False
 
+        if msg_category == MessageCategory.MqttJsonBroadcast:
+            # unwrap the event
+            ...
+
         if not success_putting_this_one:
             self.store_locally(file_name, body)
+
+
 
     ######################
     # S3 related
     #######################
 
     def possibly_update_s3_folder(self) -> bool:
-        """Checks if the curent output folder has more than 5 MB in it. If yes, it
-        sets the time based subfolder name based on the time right now.
+        """Checks if current time is in a new day UTC
 
         Returns:
-            bool: True if a new folder has been created, false otherwise.
+            bool: True if current time is a new day UTC
         """
-        size_bytes = get_folder_size(self.settings.aws.bucket_name, self.output_folder_root)
-        if size_bytes > self.NEW_FOLDER_TRIGGER_MEGA_BYTES * 10**6:
-            candidate_new = self.time_based_subfolder_name_from_unix_s(time.time())
-            if candidate_new != self._s3_time_based_subfolder_name:
-                self._s3_time_based_subfolder_name = candidate_new
-                print(f"output_folder_root is now {self.output_folder_root}")
-                return True
-            return False
-        return False
+        old_s3_time_based_subfolder_name = self._s3_time_based_subfolder_name
+        self._s3_time_based_subfolder_name = self.time_based_subfolder_name_from_unix_s(int(time.time()))
+        return old_s3_time_based_subfolder_name != self._s3_time_based_subfolder_name
 
     @property
     def output_folder_root(self) -> str:
@@ -292,12 +307,10 @@ class Ear(ActorBase):
             outfile.write(payload)
         print(BasicLog.format("DEBUG", f"wrote to {self.local_cache_dir}/{file_name}"))
 
-    def try_to_empty_cache(self) -> "bool":
+    def try_to_empty_cache(self):
         """For each file in the relevant need_to_put subfolder,
         try to put it in s3 and if successful, delete from subfolder
 
-        Returns:
-            bool:True if subfolder is empty at the end
         """
         file_list = os.listdir(self.local_cache_dir)
         for file_name in file_list:

@@ -20,8 +20,7 @@ Changelog = "https://github.com/thegridelectric/gridworks-ear/releases"
 
 [tool.poetry.dependencies]
 python = ">=3.10, <4.0"
-gridworks = "^0.2.0"
-click = ">=8.0.1"
+gridworks-protocol = "0.5.2"
 boto3 = "^1.26.37"
 slack-sdk = "^3.19.5"
 
