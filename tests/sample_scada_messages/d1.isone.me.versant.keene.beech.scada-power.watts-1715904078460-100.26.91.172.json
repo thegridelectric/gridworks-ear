@@ -1,0 +1,16 @@
+{
+    "Header":{
+       "Src":"hw1.isone.me.versant.keene.beech.scada",
+       "Dst":"",
+       "MessageType":"power.watts",
+       "MessageId":"",
+       "AckRequired":false,
+       "TypeName":"gridworks.header"
+    },
+    "Payload":{
+       "Watts":226,
+       "TypeName":"power.watts",
+       "Version":"000"
+    },
+    "TypeName":"gw"
+ }

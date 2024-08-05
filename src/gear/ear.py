@@ -1,31 +1,30 @@
-import uuid
-import time
-import os
-import json
-from pathlib import Path
-import threading
-from dataclasses import dataclass
-from typing import no_type_check
+import functools
 import logging
+import os
+import threading
+import time
+import uuid
+from dataclasses import dataclass
+from pathlib import Path
+from typing import no_type_check
+
 import boto3
 import botocore
 import pendulum
+from gw.enums import MessageCategory
+from gw.errors import GwTypeError
+from gw.utils import responsive_sleep
+from gwbase import ActorBase
+from gwbase.actor_base import OnReceiveMessageDiagnostic
+from gwbase.enums import UniverseType
+from gwbase.types import HeartbeatA
 from pydantic import BaseModel
 from slack_sdk.webhook import WebhookClient
 
-from gridworks.enums import MessageCategory
-from gridworks.actor_base import ActorBase, OnReceiveMessageDiagnostic
-from gridworks.message import as_enum
-from gridworks.utils import responsive_sleep
-from gridworks.enums import UniverseType
-from gridworks.enums import GNodeRole
-from gridworks.errors import SchemaError
 from gear.config import EarSettings
-from gear.utils import (
-    BasicLog,
-    EarWarningType,
-    send_warning_to_slack,
-)
+from gear.utils import BasicLog
+from gear.utils import EarWarningType
+from gear.utils import send_warning_to_slack
 
 
 LOG_FORMAT = (
@@ -40,6 +39,7 @@ DEV_OUTPUT_ROOT = "output/"
 
 MINIMUM_SCADA_REPORT_SECONDS = 10 * 60
 
+
 def get_folder_size(bucket, prefix):
     total_size = 0
     for obj in boto3.resource("s3").Bucket(bucket).objects.filter(Prefix=prefix):
@@ -53,10 +53,12 @@ class MessagePlus(BaseModel):
     LogNote: str
     BodyBytes: bytes
 
+
 @dataclass
 class MessageState:
     message_time: pendulum.datetime
     reported_state: bool
+
 
 class Ear(ActorBase):
     cron_last_min_file: Path
@@ -64,25 +66,26 @@ class Ear(ActorBase):
     cron_last_day_file: Path
     message_times: dict[str, MessageState]
 
-    
     def __init__(self, settings: EarSettings):
         super().__init__(settings=settings)
+        self.hb_int: int = 0
         self.settings: EarSettings = settings
-        self.universe_type = as_enum(
-            self.settings.universe_type_value, UniverseType, UniverseType.default()
-        )
-        self.check_universe_type()
+        self._consume_exchange = "ear_tx"
         self.s3_resource = boto3.resource("s3")
         self.s3_put_works: bool = False
 
-        self.local_cache_dir = f"output/need_to_put/{self.settings.world_instance_alias}"
+        self.local_cache_dir = (
+            f"output/need_to_put/{self.settings.world_instance_alias}"
+        )
         if not os.path.exists(self.local_cache_dir):
             os.makedirs(self.local_cache_dir)
 
         now = int(time.time())
         self.webhook = WebhookClient(url=self.settings.slack.web_hook_url)
         self._messages_heard_this_hour = 0
-        self._s3_time_based_subfolder_name = self.time_based_subfolder_name_from_unix_s(int(time.time()))
+        self._s3_time_based_subfolder_name = self.time_based_subfolder_name_from_unix_s(
+            int(time.time())
+        )
         self._last_min_cron_s = now - (now % 300)
         self._last_hour_cron_s = now - (now % 3600)
         self._last_day_cron_s = now - (now % 86400)
@@ -95,54 +98,55 @@ class Ear(ActorBase):
                 # The file does not exist, so create it
                 with open(file, "w") as outfile:
                     outfile.write("")
-        os.utime(self.settings.day_cron_file,  (time.time(), time.time()))
+        os.utime(self.settings.day_cron_file, (time.time(), time.time()))
         os.utime(self.settings.hour_cron_file, (time.time(), time.time()))
         os.utime(self.settings.minute_cron_file, (time.time(), time.time()))
         self.log_csv = f"output/debug_logs/ear_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.main_thread = threading.Thread(target=self.main)
+        if self.universe_type == UniverseType.Dev:
+            self.flush_local_store()
+
+    @no_type_check
+    def on_queue_declareok(self, _unused_frame) -> None:
+        """
+        OVERWRITE base class method. Binds to everything in ear_tx
+        Method invoked by pika when the Queue.Declare RPC call made in
+        setup_queue has completed. In this method we will bind the queue
+        and exchange together with the routing key by issuing the Queue.Bind
+        RPC command. When this command is complete, the on_bindok method will
+        be invoked by pika.
+        :param pika.frame.Method _unused_frame: The Queue.DeclareOk frame
+        :param str|unicode userdata: Extra user data (queue name)
+        """
+
+        LOGGER.info(
+            "Binding %s to %s with %s",
+            self._consume_exchange,
+            "ear_tx",
+            "#",
+        )
+        cb = functools.partial(self.on_direct_message_bindok, binding="#")
+        self._single_channel.queue_bind(
+            self.queue_name,
+            "ear_tx",
+            routing_key="#",
+            callback=cb,
+        )
 
     def local_start(self) -> None:
         """This overwrites local_start in actor_base, used for additional threads.
         It cannot assume the rabbit channels are established and that
         messages can be received or sent."""
         self.main_thread.start()
-        self.actor_main_stopped = False
-    
+        self._main_loop_running = True
+        print("Just started main thread")
+
     def prepare_for_death(self) -> None:
         self.actor_main_stopped = True
 
     def local_stop(self) -> None:
         self.main_thread.join()
-    
-    def check_universe_type(self) -> None:
-        """Raises an exception if the  world root alias (found in settings)
-        does not match the universe_type (also from settings)
-
-        Dev worlds have root aliases that start with d. They are intended
-        to have world instances that run locally in development environments.
-        In particular, the same world instance can be created multiple times. Output
-        data from dev world instances is not intended for permanent storage.
-
-        Shadow worlds have root aliases that start with 's'. They are intended to
-        be simulations shared between multiple entities. Output data is intended
-        to be stored. A single shadow world instance is only supposed to run
-        once - that is, there should be at most one instance of each time for
-        each shadow world instance.
-
-        There is only supposed to be one real world, and its root alias is
-        'w'.
-        """
-
-        root_alias = self.settings.g_node_alias.split(".")[0]
-        if root_alias == "w":
-            raise NotImplementedError
-        if root_alias.startswith("d"):
-            if self.universe_type != UniverseType.Dev:
-                raise Exception(f"Universe type {self.universe_type} inconsinstent with {self.alias}. Fix settings!")
-        if root_alias.startswith("h"):
-            if self.universe_type != UniverseType.Hybrid:
-                raise Exception(f"Universe type {self.universe_type} inconsinstent with {self.alias}. Fix settings!")
-
+        self._main_loop_running = False
 
     ########################
     ## Receives
@@ -150,7 +154,8 @@ class Ear(ActorBase):
 
     @no_type_check
     def on_message(self, _unused_channel, basic_deliver, properties, body) -> None:
-        """Overriding actor_base on_message
+        """
+        Overriding actor_base on_message
         """
         routing_key = basic_deliver.routing_key
         LOGGER.debug(
@@ -160,11 +165,11 @@ class Ear(ActorBase):
 
         try:
             type_name = self.get_payload_type_name(basic_deliver)
-        except SchemaError:
+        except GwTypeError:
             return
         try:
             from_alias = self.from_alias_from_routing_key(routing_key)
-        except SchemaError as e:
+        except GwTypeError as e:
             self._latest_on_message_diagnostic = (
                 OnReceiveMessageDiagnostic.FROM_GNODE_DECODING_PROBLEM
             )
@@ -172,32 +177,33 @@ class Ear(ActorBase):
                 f"IGNORING MESSAGE. {self._latest_on_message_diagnostic}: {e}"
             )
             return
-        
-        self._messages_heard_this_hour += 1
 
+        self._messages_heard_this_hour += 1
         try:
             msg_category = self.message_category_from_routing_key(routing_key)
-        except SchemaError:
+        except GwTypeError:
             return
 
+        if self.settings.logging_on or self.settings.log_message_summary:
+            print(f"{pendulum.now('UTC')} MSG :  {from_alias} sent {type_name}")
         kafka_topic = f"{from_alias}-{type_name}"
         if msg_category == MessageCategory.RabbitGwSerial:
-            file_name = f"{kafka_topic}-{int(time.time() * 1000)}-{self.settings.my_fqdn}.txt"
+            file_name = (
+                f"{kafka_topic}-{int(time.time() * 1000)}-{self.settings.my_fqdn}.txt"
+            )
         else:
-            file_name = f"{kafka_topic}-{int(time.time() * 1000)}-{self.settings.my_fqdn}.json"
+            file_name = (
+                f"{kafka_topic}-{int(time.time() * 1000)}-{self.settings.my_fqdn}.json"
+            )
+
         if self.s3_put_works:
             success_putting_this_one = self.put_in_s3(file_name, body)
         else:
             success_putting_this_one = False
-
-        if msg_category == MessageCategory.MqttJsonBroadcast:
-            # unwrap the event
-            ...
-
+        self.last_file_name = file_name
+        self.last_body = body
         if not success_putting_this_one:
             self.store_locally(file_name, body)
-
-
 
     ######################
     # S3 related
@@ -210,7 +216,9 @@ class Ear(ActorBase):
             bool: True if current time is a new day UTC
         """
         old_s3_time_based_subfolder_name = self._s3_time_based_subfolder_name
-        self._s3_time_based_subfolder_name = self.time_based_subfolder_name_from_unix_s(int(time.time()))
+        self._s3_time_based_subfolder_name = self.time_based_subfolder_name_from_unix_s(
+            int(time.time())
+        )
         return old_s3_time_based_subfolder_name != self._s3_time_based_subfolder_name
 
     @property
@@ -224,11 +232,12 @@ class Ear(ActorBase):
         return pendulum.from_timestamp(time_unix_s).strftime("%Y%m%d")
 
     def update_s3_put_works(self):
-        payload = json.dumps(
-            f'"EarDns": "{self.settings.my_fqdn}","UnixTimeMs": {int(time.time()) * 1000}'
+        self.hb_int = (self.hb_int + 1) % 16
+        h = HeartbeatA(my_hex=hex(self.hb_int)[2:])
+        kafka_topic = f"{self.alias}-{h.type_name}"
+        self.put_in_s3(
+            file_name=f"{kafka_topic}-{self.settings.my_fqdn}.json", payload=h.as_type()
         )
-        world_alias = self.settings.world_instance_alias.split("__")[0]
-        self.put_in_s3(file_name=f"{world_alias}-heartbeat.a-0-{self.settings.my_fqdn}.txt", payload=payload)
 
     def put_in_s3(self, file_name: str, payload: str) -> bool:
         """The core function of this repo: take messages that the ear hears and
@@ -244,7 +253,9 @@ class Ear(ActorBase):
         """
 
         path_name = f"{self.output_folder_root}/{file_name}"
-        print(f"self.output_folder_root is {self.output_folder_root} and file_name is {file_name}")
+        print(
+            f"self.output_folder_root is {self.output_folder_root} and file_name is {file_name}"
+        )
         s3_object = self.s3_resource.Object(self.settings.aws.bucket_name, path_name)
         s3_put_worked = False
         log_note = ""
@@ -267,9 +278,7 @@ class Ear(ActorBase):
                     log_note = "some uncaught error"
                 else:
                     if not s3_put_result["ResponseMetadata"]["HTTPStatusCode"] == 200:
-                        log_note = (
-                            f"HttpStatusCode {s3_put_result['ResponseMetadata']['HTTPStatusCode']} "
-                        )
+                        log_note = f"HttpStatusCode {s3_put_result['ResponseMetadata']['HTTPStatusCode']} "
                     else:
                         s3_put_worked = True
 
@@ -286,23 +295,19 @@ class Ear(ActorBase):
     # Local caching
     #################
 
-    def store_locally(self, file_name: str, payload: bytes):
-        """Store message in folder output/need_to_put/world_intance_alias. Flush
-        that directory if world_type is dev"""
-        if self.universe_type == UniverseType.Dev:
-            print(
-                BasicLog.format(
-                    "DEBUG", f"dev world, so flushing all old data from {self.local_cache_dir}"
-                )
-            )
-            for subdir, dirs, files in os.walk(self.local_cache_dir):
-                for file in files:
-                    filepath = subdir + os.sep + file
-                    if filepath.endswith(".json"):
-                        os.system(f"rm {filepath}")
-                    if filepath.endswith(".txt"):
-                        os.system(f"rm {filepath}")
+    def flush_local_store(self):
+        for subdir, dirs, files in os.walk(self.local_cache_dir):
+            for file in files:
+                filepath = subdir + os.sep + file
+                if filepath.endswith(".json"):
+                    os.system(f"rm {filepath}")
+                if filepath.endswith(".txt"):
+                    os.system(f"rm {filepath}")
+        BasicLog.format("DEBUG", f"flushed all old data from {self.local_cache_dir}")
 
+    def store_locally(self, file_name: str, payload: bytes):
+        """Store message in folder output/need_to_put/world_instance_alias. Flush
+        that directory if world_type is dev"""
         with open(f"{self.local_cache_dir}/{file_name}", "wb") as outfile:
             outfile.write(payload)
         print(BasicLog.format("DEBUG", f"wrote to {self.local_cache_dir}/{file_name}"))
@@ -319,7 +324,9 @@ class Ear(ActorBase):
                 if self.put_in_s3(file_name=file_name, payload=payload):
                     os.remove(f"{self.local_cache_dir}/{file_name}")
                     print(
-                        BasicLog.format("INFO", f"Put cached {file_name} in S3 and deleted locally")
+                        BasicLog.format(
+                            "INFO", f"Put cached {file_name} in S3 and deleted locally"
+                        )
                     )
 
     ####################
@@ -377,7 +384,9 @@ class Ear(ActorBase):
     def cron_every_hour(self):
         if self._messages_heard_this_hour == 0:
             if (time.time() - os.path.getmtime(self.settings.hour_cron_file)) > 1800:
-                warning_message = f"Ear service {self.settings.my_fqdn} heard 0 messages last hour"
+                warning_message = (
+                    f"Ear service {self.settings.my_fqdn} heard 0 messages last hour"
+                )
                 print(BasicLog.format("WARNING", warning_message))
                 response_status_code = send_warning_to_slack(
                     webhook=self.webhook,
@@ -394,7 +403,7 @@ class Ear(ActorBase):
         self.cron_every_day_success()
 
     def main(self):
-        while self.actor_main_stopped is False:
+        while self:
             if self.time_for_min_cron():
                 self.cron_every_min()
             if self.time_for_hour_cron():
@@ -402,4 +411,4 @@ class Ear(ActorBase):
             if self.time_for_day_cron():
                 self.cron_every_day()
 
-            responsive_sleep(self, 1)
+            responsive_sleep(self, 10)

@@ -1,9 +1,12 @@
 import enum
 import time
-from typing import Any, NamedTuple, Optional
-from slack_sdk.webhook import WebhookClient
+from typing import Any
+from typing import NamedTuple
+from typing import Optional
 
 import pendulum
+from slack_sdk.webhook import WebhookClient
+
 
 DEFAULT_STEP_DURATION = 0.1
 
@@ -32,12 +35,12 @@ class EarWarningType(enum.Enum):
 
 
 def send_warning_to_slack(
-    webhook: WebhookClient, 
-    warning_type: EarWarningType, 
+    webhook: WebhookClient,
+    warning_type: EarWarningType,
     warning_message: str,
 ) -> str:
-    """ Requires a webhook loaded with the webhook url from ear.settings and
-    should be used to send a  warning message.  Returns the response code from 
+    """Requires a webhook loaded with the webhook url from ear.settings and
+    should be used to send a  warning message.  Returns the response code from
     the WebHookClient"""
     response = webhook.send(
         text="fallback",
@@ -46,10 +49,10 @@ def send_warning_to_slack(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*S3 Ear Warning!:*\n {warning_type.value}: {warning_message}"
-                }
+                    "text": f"*S3 Ear Warning!:*\n {warning_type.value}: {warning_message}",
+                },
             }
-        ]
+        ],
     )
     try:
         status_code = response.status_code
@@ -59,12 +62,10 @@ def send_warning_to_slack(
 
 
 def send_recovery_to_slack(
-    webhook: WebhookClient, 
-    warning_type: EarWarningType, 
-    recovery_message: str
+    webhook: WebhookClient, warning_type: EarWarningType, recovery_message: str
 ) -> str:
-    """ Requires a webhook loaded with the webhook url from ear.settings and
-    should be used to send a recovery message. Returns the response code from 
+    """Requires a webhook loaded with the webhook url from ear.settings and
+    should be used to send a recovery message. Returns the response code from
     the WebHookClient"""
     response = webhook.send(
         text="fallback",
@@ -73,10 +74,10 @@ def send_recovery_to_slack(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*S3 Ear Recovery!:*\n {warning_type.value}: {recovery_message}"
-                }
+                    "text": f"*S3 Ear Recovery!:*\n {warning_type.value}: {recovery_message}",
+                },
             }
-        ]
+        ],
     )
     try:
         status_code = response.status_code
