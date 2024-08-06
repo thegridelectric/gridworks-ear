@@ -12,9 +12,15 @@
 [black]: https://github.com/psf/black
 
 
-Non-dev GridWorks Ears store all messages produced in their universe (Hybrid ear, production ear).
+The GridWorks ear is responsible for putting all messages on its production world broker into persistent store. 
+
+
 
 ## Contributing
+
+For development, you will need a local dev rabbit broker. Set that up by downloading the gridworks-base repo and following the instructions [here](https://github.com/thegridelectric/gridworks-base?tab=readme-ov-file#dev-rabbit-broker) in its Readme.
+
+
 
 Contributions are very welcome.
 To learn more, see the [Contributor Guide].
