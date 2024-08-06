@@ -142,7 +142,7 @@ class Ear(ActorBase):
         print("Just started main thread")
 
     def prepare_for_death(self) -> None:
-        self.actor_main_stopped = True
+        self._main_loop_running = False
 
     def local_stop(self) -> None:
         self.main_thread.join()

@@ -23,7 +23,7 @@ python = ">=3.11, <4.0"
 boto3 = "^1.26.37"
 slack-sdk = "^3.19.5"
 pendulum = "^3.0.0"
-gridworks-base = { path = "../gridworks-base", develop = true }
+gridworks-base = "^0.1.2"
 
 
 [tool.poetry.dev-dependencies]
