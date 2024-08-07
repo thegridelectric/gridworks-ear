@@ -30,18 +30,10 @@ gridworks-base = "^0.1.3"
 #gridworks-base = {path="../gridworks-base", develop=true}
 #gridworks-base = {git = "https://github.com/thegridelectric/gridworks-base.git", branch="SOME_DEV_BRANCH"}
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 Pygments = ">=2.10.0"
-black = ">=21.10b0"
 coverage = {extras = ["toml"], version = ">=6.2"}
-# darglint = ">=1.8.1"
-flake8 = ">=4.0.1"
-flake8-bandit = ">=2.1.2"
-flake8-bugbear = ">=21.9.2"
-flake8-docstrings = ">=1.6.0"
-flake8-rst-docstrings = ">=0.2.5"
 furo = ">=2021.11.12"
-isort = ">=5.10.1"
 mypy = ">=0.930"
 pep8-naming = ">=0.12.1"
 pre-commit = ">=2.16.0"
@@ -53,9 +45,8 @@ sphinx-autobuild = ">=2021.3.14"
 sphinx-click = ">=3.0.2"
 xdoctest = {extras = ["colors"], version = ">=0.15.10"}
 myst-parser = {version = ">=0.16.1"}
-
-[tool.poetry.group.dev.dependencies]
 pika-stubs = "^0.1.3"
+ruff = "^0.5.6"
 
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
@@ -85,3 +76,48 @@ show_error_context = false
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.ruff]
+exclude = [
+    ".ci",
+    ".github",
+    "for_docker",
+    "docs",
+    ".git",
+    ".mypy_cache",
+    ".nox",
+    "htmlcov",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".venv",
+    ".vscode",
+    "pythonProject",
+    ".idea",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+]
+output-format = "concise"
+fix = false
+show-fixes = true
+
+[tool.ruff.lint]
+# default select used by  ruff: ["E4", "E7", "E9", "F"]
+select = ["B","C90","E4", "E7", "E9","F","I","N","PLC", "W",]
+ignore = ["W191",]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = [
+    # at least this three should be fine in tests:
+    "S101", # asserts allowed in tests...
+#    "ARG", # Unused function args -> fixtures nevertheless are functionally relevant...
+#    "FBT", # Don't care about booleans as positional arguments in tests, e.g. via @pytest.mark.parametrize()
+#    # The below are debateable
+#    "PLR2004", # Magic value used in comparison, ...
+#    "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
+]
