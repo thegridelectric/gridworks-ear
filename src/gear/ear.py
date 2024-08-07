@@ -5,6 +5,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass
+from http import HTTPStatus
 from pathlib import Path
 from typing import no_type_check
 
@@ -35,6 +36,7 @@ LOGGER.setLevel(logging.INFO)
 DEV_OUTPUT_ROOT = "output/"
 
 MINIMUM_SCADA_REPORT_SECONDS = 10 * 60
+THIRTY_MINUTES = 1800
 
 
 def get_folder_size(bucket, prefix):
@@ -270,14 +272,14 @@ class Ear(ActorBase):
             if "ResponseMetadata" not in s3_put_result.keys():
                 log_note = "some uncaught error"
                 # we could set this to raise an exception in dev setting only
+            elif "HTTPStatusCode" not in s3_put_result["ResponseMetadata"].keys():
+                log_note = "some uncaught error"
+            elif (
+                not s3_put_result["ResponseMetadata"]["HTTPStatusCode"] == HTTPStatus.OK
+            ):
+                log_note = f"HttpStatusCode {s3_put_result['ResponseMetadata']['HTTPStatusCode']} "
             else:
-                if "HTTPStatusCode" not in s3_put_result["ResponseMetadata"].keys():
-                    log_note = "some uncaught error"
-                else:
-                    if not s3_put_result["ResponseMetadata"]["HTTPStatusCode"] == 200:
-                        log_note = f"HttpStatusCode {s3_put_result['ResponseMetadata']['HTTPStatusCode']} "
-                    else:
-                        s3_put_worked = True
+                s3_put_worked = True
 
         if s3_put_worked:
             # print(BasicLog.format("DEBUG", f"S3 put of {path_name} worked"))
@@ -380,7 +382,9 @@ class Ear(ActorBase):
 
     def cron_every_hour(self):
         if self._messages_heard_this_hour == 0:
-            if (time.time() - os.path.getmtime(self.settings.hour_cron_file)) > 1800:
+            if (
+                time.time() - os.path.getmtime(self.settings.hour_cron_file)
+            ) > THIRTY_MINUTES:
                 warning_message = (
                     f"Ear service {self.settings.my_fqdn} heard 0 messages last hour"
                 )
