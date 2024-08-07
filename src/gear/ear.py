@@ -68,6 +68,8 @@ class Ear(ActorBase):
     cron_last_hour_file: Path
     cron_last_day_file: Path
     message_times: dict[str, MessageState]
+    last_file_name: str
+    last_body: bytes
 
     def __init__(self, settings: EarSettings):
         super().__init__(settings=settings)
@@ -119,7 +121,6 @@ class Ear(ActorBase):
         RPC command. When this command is complete, the on_bindok method will
         be invoked by pika.
         :param pika.frame.Method _unused_frame: The Queue.DeclareOk frame
-        :param str|unicode userdata: Extra user data (queue name)
         """
 
         LOGGER.info(
@@ -239,7 +240,7 @@ class Ear(ActorBase):
             file_name=f"{kafka_topic}-{self.settings.my_fqdn}.json", payload=h.as_type()
         )
 
-    def put_in_s3(self, file_name: str, payload: str) -> bool:
+    def put_in_s3(self, file_name: str, payload: bytes) -> bool:
         """The core function of this repo: take messages that the ear hears and
         put them in S3. As a caveat, this function is MOCKED OUT in development
         to store locally instead.
