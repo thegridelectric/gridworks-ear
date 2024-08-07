@@ -1,9 +1,11 @@
+import json
+import uuid
+
+import pika
 from gwbase import ActorBase
 from gwbase.config import GNodeSettings
 from gwbase.enums import MessageCategory
-import uuid
-import pika
-import json
+
 
 STATUS_ROUTING_KEY = (
     "gw.d1-isone-me-versant-keene-beech-scada.gridworks-event-gt-sh-status"
@@ -36,7 +38,7 @@ class DummyScada(ActorBase):
         assert STATUS_FILE.split("-")[1] == type_name
         assert routing_key == STATUS_ROUTING_KEY
 
-        with open(self.folder_base + STATUS_FILE, "r") as f:
+        with open(self.folder_base + STATUS_FILE) as f:
             payload_dict = json.load(f)
             payload_bytes = json.dumps(payload_dict).encode("utf-8")
 

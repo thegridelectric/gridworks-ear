@@ -29,10 +29,8 @@ python_versions = ["3.12"]
 nox.needs_version = ">= 2021.6.6"
 nox.options.sessions = (
     "pre-commit",
-    # "safety",
     "mypy",
     "tests",
-    # "typeguard",
     "xdoctest",
     "docs-build",
 )
