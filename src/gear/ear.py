@@ -59,6 +59,10 @@ class MessageState:
     reported_state: bool
 
 
+def time_based_subfolder_name_from_unix_s(time_unix_s: int) -> str:
+    return pendulum.from_timestamp(time_unix_s).strftime("%Y%m%d")
+
+
 class Ear(ActorBase):
     cron_last_min_file: Path
     cron_last_hour_file: Path
@@ -82,7 +86,7 @@ class Ear(ActorBase):
         now = int(time.time())
         self.webhook = WebhookClient(url=self.settings.slack.web_hook_url)
         self._messages_heard_this_hour = 0
-        self._s3_time_based_subfolder_name = self.time_based_subfolder_name_from_unix_s(
+        self._s3_time_based_subfolder_name = time_based_subfolder_name_from_unix_s(
             int(time.time())
         )
         self._last_min_cron_s = now - (now % 300)
@@ -215,7 +219,7 @@ class Ear(ActorBase):
             bool: True if current time is a new day UTC
         """
         old_s3_time_based_subfolder_name = self._s3_time_based_subfolder_name
-        self._s3_time_based_subfolder_name = self.time_based_subfolder_name_from_unix_s(
+        self._s3_time_based_subfolder_name = time_based_subfolder_name_from_unix_s(
             int(time.time())
         )
         return old_s3_time_based_subfolder_name != self._s3_time_based_subfolder_name
@@ -226,9 +230,6 @@ class Ear(ActorBase):
         Note that the world instance (hw1__1) is constant for an ear. The time-based subfolder
         is updated in a daily cron job once there is more than 5 MB stored there."""
         return f"{self.settings.world_instance_alias}/eventstore/{self._s3_time_based_subfolder_name}"
-
-    def time_based_subfolder_name_from_unix_s(self, time_unix_s: int) -> str:
-        return pendulum.from_timestamp(time_unix_s).strftime("%Y%m%d")
 
     def update_s3_put_works(self):
         self.hb_int = (self.hb_int + 1) % 16
