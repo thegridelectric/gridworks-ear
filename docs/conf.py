@@ -1,4 +1,5 @@
 """Sphinx configuration."""
+
 project = "Gridworks Ear"
 author = "GridWorks"
 copyright = "2022, GridWorks"

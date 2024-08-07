@@ -26,10 +26,9 @@ def test_start_stop_ear() -> None:
     ear = Ear(settings)
     ear.start()
     try:
-        time.sleep(.25)
+        time.sleep(0.25)
     finally:
         try:
             ear.stop()
-        except: # noqa
+        except:  # noqa
             pass
-

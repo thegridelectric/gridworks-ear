@@ -1,4 +1,5 @@
 """Settings for the GridWorks Ear, readable from environment and/or from env files."""
+
 from gwbase.config import GNodeSettings
 from pydantic import BaseModel
 from pydantic import SecretStr
