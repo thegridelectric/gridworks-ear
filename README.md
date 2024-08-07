@@ -12,7 +12,7 @@
 [black]: https://github.com/psf/black
 
 
-The GridWorks ear is responsible for putting all messages on its production world broker into persistent store. 
+The GridWorks ear is responsible for putting all messages on its production world broker into persistent store.
 
 
 

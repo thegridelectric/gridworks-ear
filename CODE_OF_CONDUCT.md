@@ -12,8 +12,8 @@ this repository to support its alignment to the above basic truth.
 ## Enforcement Responsibilities
 
 [GridWorks Energy Consulting LLC](https://gridworks-consulting.com/) ([gridworks@gridworks-consulting.com](mailto:gridworks@gridworks-consulting.com))
-owns and administers this repository, and is ultimately responsible for enforcement of standards of 
-behavior. They are responsible for merges to dev and main branches, and maintain the right and 
+owns and administers this repository, and is ultimately responsible for enforcement of standards of
+behavior. They are responsible for merges to dev and main branches, and maintain the right and
 responsibility to remove, edit, or reject  comments, commits, code, docuentation edits, issues, and other contributions
 that are  not aligned to this Code of Conduct, and will communicate reasons for moderation
 decisions when appropriate.
