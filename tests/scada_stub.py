@@ -1,4 +1,4 @@
-from gwbase import ActorBase, OnReceiveMessageDiagnostic
+from gwbase import ActorBase
 from gwbase.config import GNodeSettings
 from gwbase.enums import MessageCategory
 import uuid
@@ -8,7 +8,8 @@ import json
 STATUS_ROUTING_KEY = "gw.d1-isone-me-versant-keene-beech-scada.gridworks-event-gt-sh-status"
 
 
-class TestScada(ActorBase):
+class DummyScada(ActorBase):
+    actor_main_stopped: bool = False
 
     def __init__(self, settings: GNodeSettings):
         settings.g_node_alias = 'd1.isone.me.versant.keene.beech.scada'

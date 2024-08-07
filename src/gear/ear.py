@@ -145,8 +145,8 @@ class Ear(ActorBase):
         self._main_loop_running = False
 
     def local_stop(self) -> None:
-        self.main_thread.join()
         self._main_loop_running = False
+        self.main_thread.join()
 
     ########################
     ## Receives
@@ -403,7 +403,7 @@ class Ear(ActorBase):
         self.cron_every_day_success()
 
     def main(self):
-        while self:
+        while self._main_loop_running:
             if self.time_for_min_cron():
                 self.cron_every_min()
             if self.time_for_hour_cron():
