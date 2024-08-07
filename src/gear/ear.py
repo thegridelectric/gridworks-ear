@@ -293,7 +293,7 @@ class Ear(ActorBase):
     #################
 
     def flush_local_store(self):
-        for subdir, dirs, files in os.walk(self.local_cache_dir):
+        for subdir, _, files in os.walk(self.local_cache_dir):
             for file in files:
                 filepath = subdir + os.sep + file
                 if filepath.endswith(".json"):
@@ -385,7 +385,7 @@ class Ear(ActorBase):
                     f"Ear service {self.settings.my_fqdn} heard 0 messages last hour"
                 )
                 print(BasicLog.format("WARNING", warning_message))
-                response_status_code = send_warning_to_slack(
+                send_warning_to_slack(
                     webhook=self.webhook,
                     warning_type=EarWarningType.EAR_HEARD_NO_MESSAGES_FOR_AN_HOUR,
                     warning_message=warning_message,

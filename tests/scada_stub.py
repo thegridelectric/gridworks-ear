@@ -27,17 +27,17 @@ class DummyScada(ActorBase):
         """
         Sends an old sample status message
         """
-        STATUS_FILE = "d1.isone.me.versant.keene.beech.scada-gridworks.event.gt.sh.status-1715905380350-100.26.91.172.json"
+        status_file = "d1.isone.me.versant.keene.beech.scada-gridworks.event.gt.sh.status-1715905380350-100.26.91.172.json"
         type_name = "gridworks.event.gt.sh.status"
         routing_key = (
             "gw." + self.alias.replace(".", "-") + "." + type_name.replace(".", "-")
         )
 
-        assert STATUS_FILE.split("-")[0] == self.alias
-        assert STATUS_FILE.split("-")[1] == type_name
+        assert status_file.split("-")[0] == self.alias
+        assert status_file.split("-")[1] == type_name
         assert routing_key == STATUS_ROUTING_KEY
 
-        with open(self.folder_base + STATUS_FILE) as f:
+        with open(self.folder_base + status_file) as f:
             payload_dict = json.load(f)
             payload_bytes = json.dumps(payload_dict).encode("utf-8")
 

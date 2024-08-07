@@ -34,7 +34,7 @@ def send_warning_to_slack(
     webhook: WebhookClient,
     warning_type: EarWarningType,
     warning_message: str,
-) -> str:
+) -> int:
     """Requires a webhook loaded with the webhook url from ear.settings and
     should be used to send a  warning message.  Returns the response code from
     the WebHookClient"""
@@ -50,16 +50,12 @@ def send_warning_to_slack(
             }
         ],
     )
-    try:
-        status_code = response.status_code
-    except:
-        return "No status code returned in webhook response!"
-    return status_code
+    return response.status_code
 
 
 def send_recovery_to_slack(
     webhook: WebhookClient, warning_type: EarWarningType, recovery_message: str
-) -> str:
+) -> int:
     """Requires a webhook loaded with the webhook url from ear.settings and
     should be used to send a recovery message. Returns the response code from
     the WebHookClient"""
@@ -75,11 +71,7 @@ def send_recovery_to_slack(
             }
         ],
     )
-    try:
-        status_code = response.status_code
-    except:
-        return "No status code returned in webhook response!"
-    return status_code
+    return response.status_code
 
 
 def short_log_time() -> str:
@@ -101,6 +93,7 @@ class BasicLog:
         Formats a single line summary of message receipt/publication.
 
         Args:
+            level: Log level
             log_note: the info level note
             timestamp: "pendulum.now("UTC") by default"
 
