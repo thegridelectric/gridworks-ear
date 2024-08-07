@@ -6,8 +6,8 @@ from gear.ear import Ear
 
 # from tests.scada_stub import DummyScada
 #
-# def test_send_scada_status() -> None:
 #
+# def test_send_scada_status() -> None:
 #     settings = EarSettings(_env_file=dotenv.find_dotenv())
 #     scada_stub = DummyScada(settings)
 #     scada_stub.start()
@@ -16,13 +16,12 @@ from gear.ear import Ear
 #     finally:
 #         try:
 #             scada_stub.stop()
-#         except: # noqa
+#         except:  # noqa
 #             pass
 
 
 def test_start_stop_ear() -> None:
     settings = EarSettings(_env_file=dotenv.find_dotenv())
-    # settings.rabbit.url.get_secret_value()
     ear = Ear(settings)
     ear.start()
     try:

@@ -1,5 +1,6 @@
 import json
 import uuid
+from pathlib import Path
 
 import pika
 from gwbase import ActorBase
@@ -36,11 +37,10 @@ class DummyScada(ActorBase):
         assert status_file.split("-")[0] == self.alias
         assert status_file.split("-")[1] == type_name
         assert routing_key == STATUS_ROUTING_KEY
-
-        with open(self.folder_base + status_file) as f:
+        path = Path(self.folder_base + status_file)
+        with path.open() as f:
             payload_dict = json.load(f)
             payload_bytes = json.dumps(payload_dict).encode("utf-8")
-
         properties = pika.BasicProperties(
             reply_to=self.queue_name,
             app_id=self.alias,
