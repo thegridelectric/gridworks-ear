@@ -59,3 +59,4 @@ repos:
     rev: v2.6.0
     hooks:
       - id: prettier
+        exclude: "\\.ci/.*|\\.github|tests/sample_scada_messages/.*"

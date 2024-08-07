@@ -1,26 +1,19 @@
 # Gridworks Ear
 
-
 [![Tests](https://github.com/thegridelectric/gridworks-ear/workflows/Tests/badge.svg)][tests]
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)][pre-commit]
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)][black]
 
-
 [tests]: https://github.com/thegridelectric/gridworks-ear/actions?workflow=Tests
 [pre-commit]: https://github.com/pre-commit/pre-commit
 [black]: https://github.com/psf/black
 
-
 The GridWorks ear is responsible for putting all messages on its production world broker into persistent store.
-
-
 
 ## Contributing
 
 For development, you will need a local dev rabbit broker. Set that up by downloading the gridworks-base repo and following the instructions [here](https://github.com/thegridelectric/gridworks-base?tab=readme-ov-file#dev-rabbit-broker) in its Readme.
-
-
 
 Contributions are very welcome.
 To learn more, see the [Contributor Guide].
