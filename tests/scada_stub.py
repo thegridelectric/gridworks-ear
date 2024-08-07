@@ -6,7 +6,6 @@ from gwbase import ActorBase
 from gwbase.config import GNodeSettings
 from gwbase.enums import MessageCategory
 
-
 STATUS_ROUTING_KEY = (
     "gw.d1-isone-me-versant-keene-beech-scada.gridworks-event-gt-sh-status"
 )

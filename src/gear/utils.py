@@ -1,12 +1,8 @@
 import enum
-import time
-from typing import Any
-from typing import NamedTuple
-from typing import Optional
+from typing import NamedTuple, Optional
 
 import pendulum
 from slack_sdk.webhook import WebhookClient
-
 
 DEFAULT_STEP_DURATION = 0.1
 

@@ -1,10 +1,8 @@
 import time
 
 import dotenv
-
 from gear.config import EarSettings
 from gear.ear import Ear
-
 
 # from tests.scada_stub import DummyScada
 #

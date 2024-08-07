@@ -22,10 +22,7 @@ from pydantic import BaseModel
 from slack_sdk.webhook import WebhookClient
 
 from gear.config import EarSettings
-from gear.utils import BasicLog
-from gear.utils import EarWarningType
-from gear.utils import send_warning_to_slack
-
+from gear.utils import BasicLog, EarWarningType, send_warning_to_slack
 
 LOG_FORMAT = (
     "%(levelname) -10s %(asctime)s %(name) -30s %(funcName) "

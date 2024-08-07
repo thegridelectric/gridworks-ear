@@ -1,10 +1,8 @@
 """Settings for the GridWorks Ear, readable from environment and/or from env files."""
 
 from gwbase.config import GNodeSettings
-from pydantic import BaseModel
-from pydantic import SecretStr
+from pydantic import BaseModel, SecretStr
 from pydantic_settings import BaseSettings
-
 
 DEFAULT_ENV_FILE = ".env"
 
