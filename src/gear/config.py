@@ -14,6 +14,7 @@ class SlackClient(BaseModel):
 class AwsClient(BaseModel):
     """Settings for interacting with Aws"""
 
+    profile_name: str = "default"
     region_name: str = "us-east-1"
     hosted_zone_id: SecretStr = SecretStr("")
     bucket_name: str = "gwdev"

@@ -70,13 +70,18 @@ class Ear(ActorBase):
     message_times: dict[str, MessageState]
     last_file_name: str
     last_body: bytes
+    _messages_heard_this_hour: int = 0
+    _messages_heard_total: int = 0
 
     def __init__(self, settings: EarSettings):
         super().__init__(settings=settings)
         self.hb_int: int = 0
         self.settings: EarSettings = settings
         self._consume_exchange = "ear_tx"
-        self.s3_resource = boto3.resource("s3")
+        self.s3_resource = boto3.Session(
+            region_name=settings.aws.region_name,
+            profile_name=settings.aws.profile_name,
+        ).resource("s3")
         self.s3_put_works: bool = False
 
         self.local_cache_dir = (
@@ -88,6 +93,7 @@ class Ear(ActorBase):
         now = int(time.time())
         self.webhook = WebhookClient(url=self.settings.slack.web_hook_url)
         self._messages_heard_this_hour = 0
+        self._messages_heard_total = 0
         self._s3_time_based_subfolder_name = time_based_subfolder_name_from_unix_s(
             int(time.time())
         )
@@ -145,12 +151,13 @@ class Ear(ActorBase):
         self._main_loop_running = True
         print("Just started main thread")
 
-    def prepare_for_death(self) -> None:
-        self._main_loop_running = False
-
     def local_stop(self) -> None:
         self._main_loop_running = False
         self.main_thread.join()
+
+    @property
+    def messages_heard_total(self) -> int:
+        return self._messages_heard_total
 
     ########################
     ## Receives
@@ -183,6 +190,7 @@ class Ear(ActorBase):
             return
 
         self._messages_heard_this_hour += 1
+        self._messages_heard_total += 1
         try:
             msg_category = self.message_category_from_routing_key(routing_key)
         except GwTypeError:

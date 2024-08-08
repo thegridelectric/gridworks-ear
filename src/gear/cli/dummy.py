@@ -13,16 +13,11 @@ STATUS_ROUTING_KEY = (
 
 
 class DummyScada(ActorBase):
-    actor_main_stopped: bool = False
-
     def __init__(self, settings: GNodeSettings):
         settings.g_node_alias = "d1.isone.me.versant.keene.beech.scada"
         settings.g_node_role_value = "Scada"
         self.folder_base = "tests/sample_scada_messages/"
         super().__init__(settings=settings)
-
-    def prepare_for_death(self) -> None:
-        self.actor_main_stopped = True
 
     def send_status(self) -> None:
         """

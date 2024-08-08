@@ -1,31 +1,26 @@
-import time
-
 import dotenv
+from gear.cli.main import app
 from gear.config import EarSettings
 from gear.ear import Ear
+from gw_test import wait_for
+from typer.testing import CliRunner
 
-# from tests.scada_stub import DummyScada
-#
-#
-# def test_send_scada_status() -> None:
-#     settings = EarSettings(_env_file=dotenv.find_dotenv())
-#     scada_stub = DummyScada(settings)
-#     scada_stub.start()
-#     try:
-#         scada_stub.send_status()
-#     finally:
-#         try:
-#             scada_stub.stop()
-#         except:  # noqa
-#             pass
+runner = CliRunner()
 
 
-def test_start_stop_ear() -> None:
+def test_start_one_message() -> None:
     settings = EarSettings(_env_file=dotenv.find_dotenv())
     ear = Ear(settings)
     ear.start()
     try:
-        time.sleep(0.25)
+        messages_heard_start = ear.messages_heard_total
+        dummy_result = runner.invoke(app, ["dummy"])
+        assert dummy_result.exit_code == 0
+        wait_for(
+            f=lambda: ear.messages_heard_total > messages_heard_start,
+            timeout=2.0,
+            tag=f"Wait for Ear to receive dummy more than {messages_heard_start} messages",
+        )
     finally:
         try:
             ear.stop()
