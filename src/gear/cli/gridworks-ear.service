@@ -1,0 +1,16 @@
+[Unit]
+Description=GridWorks Ear service
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+User=ubuntu
+Environment=VIRTUAL_ENV=/home/ubuntu/gridworks-ear-service-env
+ExecStart=/usr/local/bin/ear listen
+RestartSec=1
+# WatchdogSec=20
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target

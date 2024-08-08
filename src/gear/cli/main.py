@@ -7,10 +7,14 @@ import rich
 import typer
 
 from gear.cli.dummy import DummyScada
+from gear.cli.service import app as service_app
 from gear.config import EarSettings
 from gear.ear import Ear
 
 app = typer.Typer(no_args_is_help=True)
+app.add_typer(
+    service_app, name="service", help="Interact with gridworks-ear systemd service."
+)
 
 
 @app.callback()
