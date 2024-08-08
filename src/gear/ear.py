@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import no_type_check
 
 import boto3
-import botocore
 import pendulum
+from botocore.exceptions import ClientError, EndpointConnectionError
 from gw.enums import MessageCategory
 from gw.errors import GwTypeError
 from gw.utils import responsive_sleep
@@ -273,9 +273,9 @@ class Ear(ActorBase):
         s3_put_result = None
         try:
             s3_put_result = s3_object.put(Body=payload)
-        except botocore.exceptions.ClientError as e:
+        except ClientError as e:
             log_note = f"botocore.exceptions.ClientError: {e}"
-        except botocore.exceptions.EndpointConnectionError as e:
+        except EndpointConnectionError as e:
             log_note = f"botocore.exceptions.EndpointConnectionError: {e}"
         except Exception as e:
             log_note = f"unknown error type {e}"
@@ -294,7 +294,7 @@ class Ear(ActorBase):
                 s3_put_worked = True
 
         if s3_put_worked:
-            # print(BasicLog.format("DEBUG", f"S3 put of {path_name} worked"))
+            print(BasicLog.format("DEBUG", f"S3 put of {path_name} worked"))
             self.s3_put_works = True
             return True
         else:
