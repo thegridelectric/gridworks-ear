@@ -10,7 +10,7 @@ runner = CliRunner()
 
 def test_start_one_message() -> None:
     settings = EarSettings(_env_file=dotenv.find_dotenv())
-    ear = Ear(settings)
+    ear = Ear(settings, use_s3=False)
     ear.start()
     try:
         messages_heard_start = ear.messages_heard_total

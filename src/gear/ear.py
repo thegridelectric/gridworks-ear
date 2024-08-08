@@ -72,8 +72,9 @@ class Ear(ActorBase):
     last_body: bytes
     _messages_heard_this_hour: int = 0
     _messages_heard_total: int = 0
+    use_s3: bool = True
 
-    def __init__(self, settings: EarSettings):
+    def __init__(self, settings: EarSettings, use_s3: bool = True):
         super().__init__(settings=settings)
         self.hb_int: int = 0
         self.settings: EarSettings = settings
@@ -82,7 +83,8 @@ class Ear(ActorBase):
             region_name=settings.aws.region_name,
             profile_name=settings.aws.profile_name,
         ).resource("s3")
-        self.s3_put_works: bool = False
+        self.use_s3 = use_s3
+        self.s3_put_works: bool = True
 
         self.local_cache_dir = (
             f"output/need_to_put/{self.settings.world_instance_alias}"
@@ -208,7 +210,7 @@ class Ear(ActorBase):
                 f"{kafka_topic}-{int(time.time() * 1000)}-{self.settings.my_fqdn}.json"
             )
 
-        if self.s3_put_works:
+        if self.use_s3 and self.s3_put_works:
             success_putting_this_one = self.put_in_s3(file_name, body)
         else:
             success_putting_this_one = False
@@ -387,7 +389,8 @@ class Ear(ActorBase):
         os.utime(self.settings.day_cron_file, (time.time(), time.time()))
 
     def cron_every_min(self):
-        self.update_s3_put_works()
+        if self.use_s3:
+            self.update_s3_put_works()
         self.cron_every_min_success()
 
     def cron_every_hour(self):
