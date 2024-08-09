@@ -33,6 +33,7 @@ gridworks-base = "^0.1.4"
 #gridworks-base = {path="../gridworks-base", develop=true}
 #gridworks-base = {git = "https://github.com/thegridelectric/gridworks-base.git", branch="SOME_DEV_BRANCH"}
 typer = "^0.12.3"
+xdg = "^6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 Pygments = ">=2.10.0"

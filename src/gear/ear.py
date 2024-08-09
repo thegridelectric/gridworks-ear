@@ -11,6 +11,7 @@ from typing import no_type_check
 
 import boto3
 import pendulum
+import xdg
 from botocore.exceptions import ClientError, EndpointConnectionError
 from gw.enums import MessageCategory
 from gw.errors import GwTypeError
@@ -33,7 +34,7 @@ LOGGER = logging.getLogger(__name__)
 
 LOGGER.setLevel(logging.INFO)
 
-DEV_OUTPUT_ROOT = "output/"
+DEV_OUTPUT_ROOT = xdg.xdg_data_home() / "gridworks/ear/output"
 
 MINIMUM_SCADA_REPORT_SECONDS = 10 * 60
 THIRTY_MINUTES = 1800
@@ -86,11 +87,10 @@ class Ear(ActorBase):
         self.use_s3 = use_s3
         self.s3_put_works: bool = True
 
-        self.local_cache_dir = (
-            f"output/need_to_put/{self.settings.world_instance_alias}"
+        self.local_cache_dir = DEV_OUTPUT_ROOT / (
+            f"need_to_put/{self.settings.world_instance_alias}"
         )
-        if not os.path.exists(self.local_cache_dir):
-            os.makedirs(self.local_cache_dir)
+        self.local_cache_dir.mkdir(exist_ok=True, parents=True)
 
         now = int(time.time())
         self.webhook = WebhookClient(url=self.settings.slack.web_hook_url)

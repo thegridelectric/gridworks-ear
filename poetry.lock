@@ -2236,6 +2236,17 @@ files = [
 ]
 
 [[package]]
+name = "xdg"
+version = "6.0.0"
+description = "Variables defined by the XDG Base Directory Specification"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "xdg-6.0.0-py3-none-any.whl", hash = "sha256:df3510755b4395157fc04fc3b02467c777f3b3ca383257397f09ab0d4c16f936"},
+    {file = "xdg-6.0.0.tar.gz", hash = "sha256:24278094f2d45e846d1eb28a2ebb92d7b67fc0cab5249ee3ce88c95f649a1c92"},
+]
+
+[[package]]
 name = "xdoctest"
 version = "1.1.6"
 description = "A rewrite of the builtin doctest module"
@@ -2265,4 +2276,4 @@ tests-strict = ["pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==6.2.5)", "pyt
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "08a84f4c71f363b88a95be2720073b5f2d71cd938eccb0b342c92983147c502e"
+content-hash = "1a870415cf9191cf6b90c54d2d4fecfcb615ca2cb94ec8e6d5929aafd32f5e42"
