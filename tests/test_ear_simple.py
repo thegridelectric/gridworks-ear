@@ -26,9 +26,10 @@ def test_start_one_message() -> None:
         messages_heard_start = ear.messages_heard_total
         dummy_result = runner.invoke(app, ["dummy"])
         assert dummy_result.exit_code == 0
+        print(dummy_result.output)
         wait_for(
             f=lambda: ear.messages_heard_total > messages_heard_start,
-            timeout=10.0,
+            timeout=2.0,
             tag=f"Wait for Ear to receive dummy more than {messages_heard_start} messages",
         )
     finally:
