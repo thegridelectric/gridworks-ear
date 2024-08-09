@@ -264,9 +264,9 @@ class Ear(ActorBase):
         """
 
         path_name = f"{self.output_folder_root}/{file_name}"
-        print(
-            f"self.output_folder_root is {self.output_folder_root} and file_name is {file_name}"
-        )
+        # print(
+        #     f"self.output_folder_root is {self.output_folder_root} and file_name is {file_name}"
+        # )
         s3_object = self.s3_resource.Object(self.settings.aws.bucket_name, path_name)
         s3_put_worked = False
         log_note = ""
