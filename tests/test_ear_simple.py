@@ -1,3 +1,5 @@
+import os
+
 import dotenv
 import rich
 from gear.cli.main import app
@@ -14,6 +16,8 @@ def test_start_one_message() -> None:
     rich.print("Using settings:")
     rich.print(settings)
     ear = Ear(settings, use_s3=False)
+    if os.getenv("GITHUB_ACTIONS"):
+        print("Exiting because connection to rabbit broker in CI currently fails")
     ear.start()
     try:
         messages_heard_start = ear.messages_heard_total
