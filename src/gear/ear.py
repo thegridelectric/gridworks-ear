@@ -3,7 +3,6 @@ import logging
 import os
 import threading
 import time
-import uuid
 from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
@@ -34,7 +33,8 @@ LOGGER = logging.getLogger(__name__)
 
 LOGGER.setLevel(logging.INFO)
 
-DEV_OUTPUT_ROOT = xdg.xdg_data_home() / "gridworks/ear/output"
+DEV_DATA_ROOT = xdg.xdg_data_home() / "gridworks/ear/output"
+DEV_STATE_ROOT = xdg.xdg_data_home() / "gridworks/ear"
 
 MINIMUM_SCADA_REPORT_SECONDS = 10 * 60
 THIRTY_MINUTES = 1800
@@ -87,7 +87,7 @@ class Ear(ActorBase):
         self.use_s3 = use_s3
         self.s3_put_works: bool = True
 
-        self.local_cache_dir = DEV_OUTPUT_ROOT / (
+        self.local_cache_dir = DEV_DATA_ROOT / (
             f"need_to_put/{self.settings.world_instance_alias}"
         )
         self.local_cache_dir.mkdir(exist_ok=True, parents=True)
@@ -102,19 +102,12 @@ class Ear(ActorBase):
         self._last_min_cron_s = now - (now % 300)
         self._last_hour_cron_s = now - (now % 3600)
         self._last_day_cron_s = now - (now % 86400)
-        for file in [
-            self.settings.minute_cron_file,
-            self.settings.hour_cron_file,
-            self.settings.day_cron_file,
-        ]:
-            if not os.path.exists(file):
-                # The file does not exist, so create it
-                with open(file, "w") as outfile:
-                    outfile.write("")
-        os.utime(self.settings.day_cron_file, (time.time(), time.time()))
-        os.utime(self.settings.hour_cron_file, (time.time(), time.time()))
-        os.utime(self.settings.minute_cron_file, (time.time(), time.time()))
-        self.log_csv = f"output/debug_logs/ear_{str(uuid.uuid4()).split('-')[1]}.csv"
+        self.cron_last_min_file = DEV_STATE_ROOT / self.settings.minute_cron_file
+        self.cron_last_hour_file = DEV_STATE_ROOT / self.settings.hour_cron_file
+        self.cron_last_day_file = DEV_STATE_ROOT / self.settings.day_cron_file
+        self.cron_last_min_file.touch()
+        self.cron_last_hour_file.touch()
+        self.cron_last_day_file.touch()
         self.main_thread = threading.Thread(target=self.main)
         if self.universe_type == UniverseType.Dev:
             self.flush_local_store()
@@ -264,9 +257,6 @@ class Ear(ActorBase):
         """
 
         path_name = f"{self.output_folder_root}/{file_name}"
-        # print(
-        #     f"self.output_folder_root is {self.output_folder_root} and file_name is {file_name}"
-        # )
         s3_object = self.s3_resource.Object(self.settings.aws.bucket_name, path_name)
         s3_put_worked = False
         log_note = ""
@@ -376,17 +366,17 @@ class Ear(ActorBase):
 
     def cron_every_min_success(self):
         self._last_min_cron_s = int(time.time())
-        os.utime(self.settings.minute_cron_file, (time.time(), time.time()))
+        self.cron_last_min_file.touch()
 
     def cron_every_hour_success(self):
         print(BasicLog.format("INFO", "Ran cron every hour"))
         self._last_hour_cron_s = int(time.time())
-        os.utime(self.settings.hour_cron_file, (time.time(), time.time()))
+        self.cron_last_hour_file.touch()
 
     def cron_every_day_success(self):
         self._last_day_cron_s = int(time.time())
         print(BasicLog.format("INFO", "Ran cron every day"))
-        os.utime(self.settings.day_cron_file, (time.time(), time.time()))
+        self.cron_last_day_file.touch()
 
     def cron_every_min(self):
         if self.use_s3:
@@ -396,7 +386,7 @@ class Ear(ActorBase):
     def cron_every_hour(self):
         if self._messages_heard_this_hour == 0:
             if (
-                time.time() - os.path.getmtime(self.settings.hour_cron_file)
+                time.time() - self.cron_last_hour_file.stat().st_mtime
             ) > THIRTY_MINUTES:
                 warning_message = (
                     f"Ear service {self.settings.my_fqdn} heard 0 messages last hour"

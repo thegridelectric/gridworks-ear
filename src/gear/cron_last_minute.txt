@@ -1,1 +1,0 @@
-The date-modified for this file should be adjusted every time the `ear` completes its minutely cron jobs.
