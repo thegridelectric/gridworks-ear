@@ -1,4 +1,5 @@
 import dotenv
+import rich
 from gear.cli.main import app
 from gear.config import EarSettings
 from gear.ear import Ear
@@ -10,6 +11,8 @@ runner = CliRunner()
 
 def test_start_one_message() -> None:
     settings = EarSettings(_env_file=dotenv.find_dotenv())
+    rich.print("Using settings:")
+    rich.print(settings)
     ear = Ear(settings, use_s3=False)
     ear.start()
     try:
