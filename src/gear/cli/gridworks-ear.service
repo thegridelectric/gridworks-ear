@@ -7,7 +7,7 @@ Type=simple
 Restart=always
 User=ubuntu
 Environment=VIRTUAL_ENV=/home/ubuntu/gridworks-ear-service-env
-ExecStart=/usr/local/bin/ear listen
+ExecStart=/home/ubuntu/gridworks-ear-service-env/bin/ear listen
 RestartSec=1
 # WatchdogSec=20
 NotifyAccess=all

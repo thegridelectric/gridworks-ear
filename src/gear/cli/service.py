@@ -1,5 +1,6 @@
 import os
 import subprocess
+from pathlib import Path
 
 import typer
 
@@ -13,7 +14,10 @@ def _run_command(command: str | list[str], dry_run: bool) -> None:
         print(" ".join(command))
     else:
         result = subprocess.run(command, check=False, capture_output=True)
-        print(result.stdout)
+        if result.stderr:
+            print(result.stderr.decode("utf-8"))
+        if result.stdout:
+            print(result.stdout.decode("utf-8"))
 
 
 def _run_commands(commands: list[str | list[str]], dry_run: bool) -> None:
@@ -39,7 +43,7 @@ def install(dry_run: bool = False):
     _uninstall(dry_run=dry_run)
     _run_commands(
         [
-            "sudo ln -s ./gridworks-ear.service /lib/systemd/system",
+            f"sudo ln -s {Path(__file__).parent}/gridworks-ear.service /lib/systemd/system",
             f"ln -s {os.getenv('VIRTUAL_ENV')} /home/ubuntu/gridworks-ear-service-env",
             "sudo systemctl enable /lib/systemd/system/gridworks-ear.service",
             "sudo systemctl start gridworks-ear.service",
