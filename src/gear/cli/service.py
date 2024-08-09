@@ -1,51 +1,75 @@
+import os
+import subprocess
+
 import typer
 
 app = typer.Typer(no_args_is_help=True)
 
 
-def _uninstall():
-    ...
-    # sudo systemctl stop gridworks-ear.service
-    # sudo systemctl disable gridworks-ear.service
-    # sudo systemctl daemon-reload
-    # sudo rm /lib/systemd/system/gridworks-ear.service
-    # rm /home/ubuntu/gridworks-ear-service-env
+def _run_command(command: str | list[str], dry_run: bool) -> None:
+    if isinstance(command, str):
+        command = command.split()
+    if dry_run:
+        print(" ".join(command))
+    else:
+        result = subprocess.run(command, check=False, capture_output=True)
+        print(result.stdout)
+
+
+def _run_commands(commands: list[str | list[str]], dry_run: bool) -> None:
+    for command in commands:
+        _run_command(command, dry_run)
+
+
+def _uninstall(dry_run: bool = False):
+    _run_commands(
+        [
+            "sudo systemctl stop gridworks-ear.service",
+            "sudo systemctl disable gridworks-ear.service",
+            "sudo systemctl daemon-reload",
+            "sudo rm /lib/systemd/system/gridworks-ear.service",
+            "rm /home/ubuntu/gridworks-ear-service-env",
+        ],
+        dry_run=dry_run,
+    )
 
 
 @app.command()
-def install():
-    _uninstall()
-    #
-    # sudo ln -s ./gridworks-ear.service /lib/systemd/system
-    # ln -s /home/ubuntu/gridworks-ear-service-env
-    # sudo systemctl enable /lib/systemd/system/gridworks-ear.service
-    # sudo systemctl start gridworks-ear.service
+def install(dry_run: bool = False):
+    _uninstall(dry_run=dry_run)
+    _run_commands(
+        [
+            "sudo ln -s ./gridworks-ear.service /lib/systemd/system",
+            f"ln -s {os.getenv('VIRTUAL_ENV')} /home/ubuntu/gridworks-ear-service-env",
+            "sudo systemctl enable /lib/systemd/system/gridworks-ear.service",
+            "sudo systemctl start gridworks-ear.service",
+        ],
+        dry_run,
+    )
 
 
 @app.command()
-def uninstall():
-    _uninstall()
+def uninstall(dry_run: bool = False):
+    _uninstall(dry_run=dry_run)
 
 
 @app.command()
-def start():
-    ...
-    # sudo systemctl start gridworks-ear.service
+def start(dry_run: bool = False):
+    _run_commands(["sudo systemctl start gridworks-ear.service"], dry_run=dry_run)
 
 
 @app.command()
-def stop():
-    ...
-    # sudo systemctl stop gridworks-ear.service
+def stop(dry_run: bool = False):
+    _run_commands(["sudo systemctl stop gridworks-ear.service"], dry_run=dry_run)
 
 
 @app.command()
-def restart():
-    ...
-    # sudo systemctl restart gridworks-ear.service
+def restart(dry_run: bool = False):
+    _run_commands(["sudo systemctl restart gridworks-ear.service"], dry_run=dry_run)
 
 
 @app.command()
-def status():
-    ...
-    # systemctl status --no-pager -n 0 gridworks-ear.service
+def status(dry_run: bool = False):
+    _run_commands(
+        ["systemctl status --no-pager -n 0 gridworks-ear.service"], dry_run=dry_run
+    )
