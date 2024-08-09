@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
-from typing import no_type_check
+from typing import Optional, no_type_check
 
 import boto3
 import pendulum
@@ -19,6 +19,7 @@ from gwbase import ActorBase
 from gwbase.actor_base import OnReceiveMessageDiagnostic
 from gwbase.enums import UniverseType
 from gwbase.types import HeartbeatA
+from mypy_boto3_s3.service_resource import S3ServiceResource
 from pydantic import BaseModel
 from slack_sdk.webhook import WebhookClient
 
@@ -74,24 +75,20 @@ class Ear(ActorBase):
     _messages_heard_this_hour: int = 0
     _messages_heard_total: int = 0
     use_s3: bool = True
+    s3_put_works: bool = True
+    s3_resource: Optional[S3ServiceResource] = None
 
     def __init__(self, settings: EarSettings, use_s3: bool = True):
         super().__init__(settings=settings)
         self.hb_int: int = 0
         self.settings: EarSettings = settings
         self._consume_exchange = "ear_tx"
-        self.s3_resource = boto3.Session(
-            region_name=settings.aws.region_name,
-            profile_name=settings.aws.profile_name,
-        ).resource("s3")
         self.use_s3 = use_s3
-        self.s3_put_works: bool = True
-
+        self.s3_put_works: bool = self.use_s3
         self.local_cache_dir = DEV_DATA_ROOT / (
             f"need_to_put/{self.settings.world_instance_alias}"
         )
         self.local_cache_dir.mkdir(exist_ok=True, parents=True)
-
         now = int(time.time())
         self.webhook = WebhookClient(url=self.settings.slack.web_hook_url)
         self._messages_heard_this_hour = 0
@@ -257,6 +254,12 @@ class Ear(ActorBase):
         """
 
         path_name = f"{self.output_folder_root}/{file_name}"
+        if self.s3_resource is None:
+            self.s3_resource = boto3.Session(
+                region_name=self.settings.aws.region_name,
+                profile_name=self.settings.aws.profile_name,
+            ).resource("s3")
+
         s3_object = self.s3_resource.Object(self.settings.aws.bucket_name, path_name)
         s3_put_worked = False
         log_note = ""
