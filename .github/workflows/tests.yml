@@ -67,13 +67,13 @@ jobs:
 
       - name: Install Poetry
         run: |
-          pipx install ${{ env.PIP_ARGS }} poetry
+          pipx install --pip-args=${{ env.PIP_ARGS }} poetry
           poetry --version
 
       - name: Install Nox
         run: |
-          pipx install ${{ env.PIP_ARGS }} nox
-          pipx inject ${{ env.PIP_ARGS }} nox nox-poetry
+          pipx install --pip-args=${{ env.PIP_ARGS }} nox
+          pipx inject --pip-args=${{ env.PIP_ARGS }} nox nox-poetry
           nox --version
 
       - name: Compute pre-commit cache key
@@ -137,13 +137,13 @@ jobs:
 
   #     - name: Install Poetry
   #       run: |
-  #         pipx install ${{ env.PIP_ARGS }} poetry
+  #         pipx install --pip-args=${{ env.PIP_ARGS }} poetry
   #         poetry --version
 
   #     - name: Install Nox
   #       run: |
-  #         pipx install ${{ env.PIP_ARGS }} nox
-  #         pipx inject ${{ env.PIP_ARGS }} nox nox-poetry
+  #         pipx install --pip-args=${{ env.PIP_ARGS }} nox
+  #         pipx inject --pip-args=${{ env.PIP_ARGS }} nox nox-poetry
   #         nox --version
 
   #     - name: Download coverage data
