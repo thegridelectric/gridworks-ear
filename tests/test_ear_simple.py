@@ -16,7 +16,7 @@ def test_start_one_message() -> None:
     rich.print("Using settings:")
     rich.print(settings)
     ear = Ear(settings, use_s3=False)
-    if os.environ.get("GITHUB_ACTIONS") == "true":
+    if "GITHUB_ACTIONS" in os.environ:
         print(
             "Running in CI. Exiting this test, which fails in CI, with the ear"
             " not receiving a message"
