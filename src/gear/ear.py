@@ -294,7 +294,7 @@ class Ear(ActorBase):
                 s3_put_worked = True
 
         if s3_put_worked:
-            print(BasicLog.format("DEBUG", f"S3 put of {path_name} worked"))
+            print(f"Wrote to S3: {path_name}")
             self.s3_put_works = True
             return True
         else:
