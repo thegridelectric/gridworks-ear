@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import logging
 import os
@@ -6,11 +8,9 @@ import time
 from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
-from typing import Optional, no_type_check
 
 import boto3
 import pendulum
-import xdg
 from botocore.exceptions import ClientError, EndpointConnectionError
 from gw.enums import MessageCategory
 from gw.errors import GwTypeError
@@ -20,28 +20,29 @@ from gwbase.actor_base import OnReceiveMessageDiagnostic
 from gwbase.enums import UniverseType
 from gwbase.types import HeartbeatA
 from mypy_boto3_s3.service_resource import S3ServiceResource
+from pika.channel import Channel as PikaChannel
+from pika.frame import Method as FrameMethod
+from pika.spec import Basic as PikaBasic
+from pika.spec import BasicProperties as PikaBasicProperties
 from pydantic import BaseModel
 from slack_sdk.webhook import WebhookClient
 
 from gear.config import EarSettings
-from gear.utils import BasicLog, EarWarningType, send_warning_to_slack
-
-LOG_FORMAT = (
-    "%(levelname) -10s %(asctime)s %(name) -30s %(funcName) "
-    "-35s %(lineno) -5d: %(message)s"
+from gear.utils import EAR_LOGGER as LG
+from gear.utils import EAR_MESSAGE_LOGGER as LGMSG
+from gear.utils import EAR_STATE_LOGGER as LGST
+from gear.utils import (
+    OUTPUT_DIRECTORY,
+    STATE_DIRECTORY,
+    EarWarningType,
+    send_warning_to_slack,
 )
-LOGGER = logging.getLogger(__name__)
-
-LOGGER.setLevel(logging.INFO)
-
-DEV_DATA_ROOT = xdg.xdg_data_home() / "gridworks/ear/output"
-DEV_STATE_ROOT = xdg.xdg_data_home() / "gridworks/ear"
 
 MINIMUM_SCADA_REPORT_SECONDS = 10 * 60
 THIRTY_MINUTES = 1800
 
 
-def get_folder_size(bucket, prefix):
+def get_folder_size(bucket: str, prefix: str) -> int:
     total_size = 0
     for obj in boto3.resource("s3").Bucket(bucket).objects.filter(Prefix=prefix):
         total_size += obj.size
@@ -69,48 +70,47 @@ class Ear(ActorBase):
     cron_last_min_file: Path
     cron_last_hour_file: Path
     cron_last_day_file: Path
-    message_times: dict[str, MessageState]
     last_file_name: str
     last_body: bytes
-    _messages_heard_this_hour: int = 0
-    _messages_heard_total: int = 0
+    messages_heard_this_hour: int = 0
+    messages_heard_total: int = 0
     use_s3: bool = True
     s3_put_works: bool = True
-    s3_resource: Optional[S3ServiceResource] = None
+    s3_resource: S3ServiceResource | None = None
 
-    def __init__(self, settings: EarSettings, use_s3: bool = True):
+    def __init__(self, settings: EarSettings, *, use_s3: bool = True) -> None:
         super().__init__(settings=settings)
         self.hb_int: int = 0
         self.settings: EarSettings = settings
         self._consume_exchange = "ear_tx"
         self.use_s3 = use_s3
         self.s3_put_works: bool = self.use_s3
-        self.local_cache_dir = DEV_DATA_ROOT / (
+        self.local_cache_dir = OUTPUT_DIRECTORY / (
             f"need_to_put/{self.settings.world_instance_alias}"
         )
         self.local_cache_dir.mkdir(exist_ok=True, parents=True)
         now = int(time.time())
         self.webhook = WebhookClient(url=self.settings.slack.web_hook_url)
-        self._messages_heard_this_hour = 0
-        self._messages_heard_total = 0
+        self.messages_heard_this_hour = 0
+        self.messages_heard_total = 0
         self._s3_time_based_subfolder_name = time_based_subfolder_name_from_unix_s(
-            int(time.time())
+            int(time.time()),
         )
         self._last_min_cron_s = now - (now % 300)
         self._last_hour_cron_s = now - (now % 3600)
         self._last_day_cron_s = now - (now % 86400)
-        self.cron_last_min_file = DEV_STATE_ROOT / self.settings.minute_cron_file
-        self.cron_last_hour_file = DEV_STATE_ROOT / self.settings.hour_cron_file
-        self.cron_last_day_file = DEV_STATE_ROOT / self.settings.day_cron_file
+        self.cron_last_min_file = STATE_DIRECTORY / self.settings.minute_cron_file
+        self.cron_last_hour_file = STATE_DIRECTORY / self.settings.hour_cron_file
+        self.cron_last_day_file = STATE_DIRECTORY / self.settings.day_cron_file
         self.cron_last_min_file.touch()
         self.cron_last_hour_file.touch()
         self.cron_last_day_file.touch()
         self.main_thread = threading.Thread(target=self.main)
+        self.main_thread.deamon = True
         if self.universe_type == UniverseType.Dev:
             self.flush_local_store()
 
-    @no_type_check
-    def on_queue_declareok(self, _unused_frame) -> None:
+    def on_queue_declareok(self, _unused_frame: FrameMethod) -> None:
         """
         OVERWRITE base class method. Binds to everything in ear_tx
         Method invoked by pika when the Queue.Declare RPC call made in
@@ -121,7 +121,7 @@ class Ear(ActorBase):
         :param pika.frame.Method _unused_frame: The Queue.DeclareOk frame
         """
 
-        LOGGER.info(
+        LGST.info(
             "Binding %s to %s with %s",
             self._consume_exchange,
             "ear_tx",
@@ -141,28 +141,28 @@ class Ear(ActorBase):
         messages can be received or sent."""
         self.main_thread.start()
         self._main_loop_running = True
-        print("Just started main thread")
 
     def local_stop(self) -> None:
         self._main_loop_running = False
         self.main_thread.join()
 
-    @property
-    def messages_heard_total(self) -> int:
-        return self._messages_heard_total
-
     ########################
-    ## Receives
+    # Receives
     ########################
 
-    @no_type_check
-    def on_message(self, _unused_channel, basic_deliver, properties, body) -> None:
+    def on_message(
+        self,
+        _unused_channel: PikaChannel,
+        basic_deliver: PikaBasic.Deliver,
+        _unused_properties: PikaBasicProperties,
+        body: bytes,
+    ) -> None:
         """
         Overriding actor_base on_message
         """
         routing_key = basic_deliver.routing_key
-        LOGGER.debug(
-            f"{self.alias}: Got {basic_deliver.routing_key} with delivery tag {basic_deliver.delivery_tag}"
+        LG.debug(
+            f"{self.alias}: Got {basic_deliver.routing_key} with delivery tag {basic_deliver.delivery_tag}",
         )
         self.acknowledge_message(basic_deliver.delivery_tag)
 
@@ -176,20 +176,18 @@ class Ear(ActorBase):
             self._latest_on_message_diagnostic = (
                 OnReceiveMessageDiagnostic.FROM_GNODE_DECODING_PROBLEM
             )
-            LOGGER.warning(
-                f"IGNORING MESSAGE. {self._latest_on_message_diagnostic}: {e}"
-            )
+            s = f"IGNORING MESSAGE. {self._latest_on_message_diagnostic}: {e}"
+            LGST.warning(s)
+            LG.warning(s)
             return
 
-        self._messages_heard_this_hour += 1
-        self._messages_heard_total += 1
+        self.messages_heard_this_hour += 1
+        self.messages_heard_total += 1
         try:
             msg_category = self.message_category_from_routing_key(routing_key)
         except GwTypeError:
             return
 
-        if self.settings.logging_on or self.settings.log_message_summary:
-            print(f"{pendulum.now('UTC')} MSG :  {from_alias} sent {type_name}")
         kafka_topic = f"{from_alias}-{type_name}"
         if msg_category == MessageCategory.RabbitGwSerial:
             file_name = (
@@ -221,9 +219,14 @@ class Ear(ActorBase):
         """
         old_s3_time_based_subfolder_name = self._s3_time_based_subfolder_name
         self._s3_time_based_subfolder_name = time_based_subfolder_name_from_unix_s(
-            int(time.time())
+            int(time.time()),
         )
-        return old_s3_time_based_subfolder_name != self._s3_time_based_subfolder_name
+        changed = old_s3_time_based_subfolder_name != self._s3_time_based_subfolder_name
+        s = f"S3 folder updated: {changed!s:5s}  {old_s3_time_based_subfolder_name}"
+        if changed:
+            s += f" -> {self._s3_time_based_subfolder_name}"
+        LGST.info(s)
+        return changed
 
     @property
     def output_folder_root(self) -> str:
@@ -232,12 +235,13 @@ class Ear(ActorBase):
         is updated in a daily cron job once there is more than 5 MB stored there."""
         return f"{self.settings.world_instance_alias}/eventstore/{self._s3_time_based_subfolder_name}"
 
-    def update_s3_put_works(self):
+    def update_s3_put_works(self) -> None:
         self.hb_int = (self.hb_int + 1) % 16
-        h = HeartbeatA(my_hex=hex(self.hb_int)[2:])
+        h = HeartbeatA(my_hex=f"{self.hb_int:x}")
         kafka_topic = f"{self.alias}-{h.type_name}"
         self.put_in_s3(
-            file_name=f"{kafka_topic}-{self.settings.my_fqdn}.json", payload=h.as_type()
+            file_name=f"{kafka_topic}-{self.settings.my_fqdn}.json",
+            payload=h.as_type(),
         )
 
     def put_in_s3(self, file_name: str, payload: bytes) -> bool:
@@ -270,68 +274,63 @@ class Ear(ActorBase):
             log_note = f"botocore.exceptions.ClientError: {e}"
         except EndpointConnectionError as e:
             log_note = f"botocore.exceptions.EndpointConnectionError: {e}"
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             log_note = f"unknown error type {e}"
 
         if s3_put_result is not None:
-            if "ResponseMetadata" not in s3_put_result.keys():
-                log_note = "some uncaught error"
-                # we could set this to raise an exception in dev setting only
-            elif "HTTPStatusCode" not in s3_put_result["ResponseMetadata"].keys():
-                log_note = "some uncaught error"
-            elif (
-                not s3_put_result["ResponseMetadata"]["HTTPStatusCode"] == HTTPStatus.OK
+            if (
+                "ResponseMetadata" not in s3_put_result
+                or "HTTPStatusCode" not in s3_put_result["ResponseMetadata"]
             ):
+                log_note = "some uncaught error"
+            elif s3_put_result["ResponseMetadata"]["HTTPStatusCode"] != HTTPStatus.OK:
                 log_note = f"HttpStatusCode {s3_put_result['ResponseMetadata']['HTTPStatusCode']} "
             else:
                 s3_put_worked = True
 
         if s3_put_worked:
-            print(f"Wrote to S3: {path_name}")
+            LGMSG.info("Wrote to S3: %s", path_name)
             self.s3_put_works = True
             return True
-        else:
-            print(BasicLog.format("INFO", log_note))
-            self.s3_put_works = False
-            return False
+        LGST(log_note)
+        LG.warning(log_note)
+        self.s3_put_works = False
+        return False
 
     #################
     # Local caching
     #################
 
-    def flush_local_store(self):
+    def flush_local_store(self) -> None:
         for subdir, _, files in os.walk(self.local_cache_dir):
             for file in files:
                 filepath = subdir + os.sep + file
                 if filepath.endswith(".json"):
-                    os.system(f"rm {filepath}")
+                    os.system(f"rm {filepath}")  # noqa: S605
                 if filepath.endswith(".txt"):
-                    os.system(f"rm {filepath}")
-        BasicLog.format("DEBUG", f"flushed all old data from {self.local_cache_dir}")
+                    os.system(f"rm {filepath}")  # noqa: S605
+        LGST.debug(f"flushed all old data from {self.local_cache_dir}")
 
-    def store_locally(self, file_name: str, payload: bytes):
+    def store_locally(self, file_name: str, payload: bytes) -> None:
         """Store message in folder output/need_to_put/world_instance_alias. Flush
         that directory if world_type is dev"""
-        with open(f"{self.local_cache_dir}/{file_name}", "wb") as outfile:
+        with Path(f"{self.local_cache_dir}/{file_name}").open("wb") as outfile:
             outfile.write(payload)
-        print(BasicLog.format("DEBUG", f"wrote to {self.local_cache_dir}/{file_name}"))
+        LGST.info(f"wrote to {self.local_cache_dir}/{file_name}")
 
-    def try_to_empty_cache(self):
+    def try_to_empty_cache(self) -> None:
         """For each file in the relevant need_to_put subfolder,
         try to put it in s3 and if successful, delete from subfolder
 
         """
         file_list = os.listdir(self.local_cache_dir)
         for file_name in file_list:
-            with open(f"{self.local_cache_dir}/{file_name}", "rb") as read_file:
+            local_copy = Path(f"{self.local_cache_dir}/{file_name}")
+            with local_copy.open("rb") as read_file:
                 payload = read_file.read()
-                if self.put_in_s3(file_name=file_name, payload=payload):
-                    os.remove(f"{self.local_cache_dir}/{file_name}")
-                    print(
-                        BasicLog.format(
-                            "INFO", f"Put cached {file_name} in S3 and deleted locally"
-                        )
-                    )
+            if self.put_in_s3(file_name=file_name, payload=payload):
+                local_copy.unlink()
+                LGST.info(f"Put cached {file_name} in S3 and deleted locally")
 
     ####################
     # Timing and scheduling related
@@ -353,69 +352,99 @@ class Ear(ActorBase):
         return last_day_s + 86400
 
     def time_for_min_cron(self) -> bool:
-        if time.time() > self.next_min_cron_s:
-            return True
-        return False
+        return time.time() > self.next_min_cron_s
 
     def time_for_hour_cron(self) -> bool:
-        if time.time() > self.next_hour_cron_s:
-            return True
-        return False
+        return time.time() > self.next_hour_cron_s
 
     def time_for_day_cron(self) -> bool:
-        if time.time() > self.next_day_cron_s:
-            return True
-        return False
+        return time.time() > self.next_day_cron_s
 
-    def cron_every_min_success(self):
+    def cron_every_min_success(self) -> None:
         self._last_min_cron_s = int(time.time())
         self.cron_last_min_file.touch()
 
-    def cron_every_hour_success(self):
-        print(BasicLog.format("INFO", "Ran cron every hour"))
+    def cron_every_hour_success(self) -> None:
+        LGST.info("Ran cron every hour")
         self._last_hour_cron_s = int(time.time())
         self.cron_last_hour_file.touch()
 
-    def cron_every_day_success(self):
+    def cron_every_day_success(self) -> None:
         self._last_day_cron_s = int(time.time())
-        print(BasicLog.format("INFO", "Ran cron every day"))
+        LGST.info("Ran cron every day")
         self.cron_last_day_file.touch()
 
-    def cron_every_min(self):
+    def cron_every_min(self) -> None:
         if self.use_s3:
             self.update_s3_put_works()
         self.cron_every_min_success()
 
-    def cron_every_hour(self):
-        if self._messages_heard_this_hour == 0:
-            if (
-                time.time() - self.cron_last_hour_file.stat().st_mtime
-            ) > THIRTY_MINUTES:
-                warning_message = (
-                    f"Ear service {self.settings.my_fqdn} heard 0 messages last hour"
-                )
-                print(BasicLog.format("WARNING", warning_message))
-                send_warning_to_slack(
-                    webhook=self.webhook,
-                    warning_type=EarWarningType.EAR_HEARD_NO_MESSAGES_FOR_AN_HOUR,
-                    warning_message=warning_message,
-                )
-        self._messages_heard_this_hour = 0
+    def cron_every_hour(self) -> None:
+        LGST.info("++cron_every_hour")
+        path_dbg = 0
+        if (
+            self.messages_heard_this_hour == 0
+            and (time.time() - self.cron_last_hour_file.stat().st_mtime)
+            > THIRTY_MINUTES
+        ):
+            path_dbg |= 0x00000001
+            warning_message = (
+                f"Ear service {self.settings.my_fqdn} heard 0 messages last hour"
+            )
+            LGST.warning(warning_message)
+            LG.warning(warning_message)
+            send_warning_to_slack(
+                webhook=self.webhook,
+                warning_type=EarWarningType.EAR_HEARD_NO_MESSAGES_FOR_AN_HOUR,
+                warning_message=warning_message,
+            )
+        self.messages_heard_this_hour = 0
         if self.s3_put_works:
+            path_dbg |= 0x00000002
             self.try_to_empty_cache()
             self.cron_every_hour_success()
+        LGST.info(f"--cron_every_hour  path:0x{path_dbg:08X}")
 
-    def cron_every_day(self):
+    def cron_every_day(self) -> None:
+        LGST.info("++cron_every_day")
         self.possibly_update_s3_folder()
         self.cron_every_day_success()
+        LGST.info("--cron_every_day")
 
-    def main(self):
+    def main(self) -> None:
+        LGST.info("++Ear.main")
+        count_dbg = 0
         while self._main_loop_running:
-            if self.time_for_min_cron():
-                self.cron_every_min()
+            LGST.info(f"++ear.main  itr:{count_dbg:3d}")
+            path_dbg = 0
             if self.time_for_hour_cron():
+                path_dbg |= 0x00000001
                 self.cron_every_hour()
             if self.time_for_day_cron():
+                path_dbg |= 0x00000002
                 self.cron_every_day()
+            sleep_seconds = min(max(self.next_hour_cron_s - time.time(), 0), 5 * 60)
+            self.log_times()
+            LGST.info(
+                f"--ear.main  itr:{count_dbg:3d}  sleep_seconds:{sleep_seconds}  path:0x{path_dbg:08X}"
+            )
+            count_dbg += 1
+            responsive_sleep(self, seconds=sleep_seconds)
+        LGST.info("--Ear.main")
 
-            responsive_sleep(self, 10)
+    def log_times(self) -> None:
+        if LGST.isEnabledFor(logging.INFO):
+            LGST.info("Ear cron times")
+            now_utc = int(time.time())
+            for tag, utc_timestamp, overdue in [
+                ("now", now_utc, True),
+                ("hour", self.next_hour_cron_s, self.time_for_hour_cron()),
+                ("day", self.next_day_cron_s, self.time_for_day_cron()),
+            ]:
+                tag_str = f"{tag:4s}"
+                time_str = (
+                    f"{tag_str}  passed: {overdue!s:5s}  "
+                    f"utc: {pendulum.from_timestamp(utc_timestamp, 'UTC').isoformat()}  "
+                    f"local: {pendulum.from_timestamp(utc_timestamp, 'local').isoformat()}"
+                )
+                LGST.info(time_str)

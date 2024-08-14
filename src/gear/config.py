@@ -29,9 +29,6 @@ class EarSettings(GNodeSettings):
     my_fqdn: str = "localhost"  # the fqdn for the ear
     aws: AwsClient = AwsClient()
     slack: SlackClient = SlackClient()
-    output_dir: str = "output"
-    logging_on: bool = False
-    log_message_summary: bool = False
     minute_cron_file: str = "cron_last_minute.txt"
     hour_cron_file: str = "cron_last_hour.txt"
     day_cron_file: str = "cron_last_day.txt"

@@ -1,4 +1,4 @@
-# type: ignore
+# ruff: noqa: ALL
 
 """Nox sessions."""
 
@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from textwrap import dedent
 
-import nox  # noqa
+import nox  # noqa: ALL
 
 try:
     from nox_poetry import Session, session
@@ -95,7 +95,8 @@ def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
         text = hook.read_text()
 
         if not any(
-            Path("A") == Path("a") and bindir.lower() in text.lower() or bindir in text
+            (Path("A") == Path("a") and bindir.lower() in text.lower())
+            or bindir in text
             for bindir in bindirs
         ):
             continue
@@ -204,7 +205,11 @@ def docs(session: Session) -> None:
     args = session.posargs or ["--open-browser", "docs", "docs/_build"]
     session.install(".")
     session.install(
-        "sphinx", "sphinx-autobuild", "sphinx-click", "sphinx_rtd_theme", "myst-parser"
+        "sphinx",
+        "sphinx-autobuild",
+        "sphinx-click",
+        "sphinx_rtd_theme",
+        "myst-parser",
     )
 
     build_dir = Path("docs", "_build")

@@ -29,7 +29,7 @@ pendulum = "^3.0.0"
 gridworks = "^1.1.7"
 #gridworks = {path="../gridworks", develop=true}
 #gridworks = {git = "https://github.com/thegridelectric/gridworks.git", branch="SOME_DEV_BRANCH"}
-gridworks-base = "^0.1.4"
+gridworks-base = "^0.1.6"
 #gridworks-base = {path="../gridworks-base", develop=true}
 #gridworks-base = {git = "https://github.com/thegridelectric/gridworks-base.git", branch="SOME_DEV_BRANCH"}
 typer = "^0.12.3"
@@ -114,19 +114,33 @@ fix = true
 show-fixes = true
 
 [tool.ruff.format]
-preview = true
+preview = false
 
 [tool.ruff.lint]
 # default select used by  ruff: ["E4", "E7", "E9", "F"]
-select = ["B","C90","E4", "E7", "E9","F","I","N","PL", "W",]
-ignore = ["PLR0904", "PLW1514", "W191", "W293",]
-preview = true
+# select = ["B","C90","E4", "E7", "E9","F","I","N","PL", "W",]
+select = ["ALL"]
+ignore = [
+    "COM812",
+    "CPY",
+    "D",
+    "DOC",
+    "E501",
+    "FA102",
+    "ISC001",
+    "PLR0904",
+    "PLW1514",
+    "TCH",
+    "W191",
+    "W293",
+]
+preview = false
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/**/*.py" = [
-    # at least this three should be fine in tests:
-    "S101", # asserts allowed in tests...
-#    "ARG", # Unused function args -> fixtures nevertheless are functionally relevant...
+    "S101", # asserts allowed in tests
+    "T201", # print allowed in tests
+    "ARG", # Unused function args -> fixtures nevertheless are functionally relevant...
 #    "FBT", # Don't care about booleans as positional arguments in tests, e.g. via @pytest.mark.parametrize()
 #    # The below are debateable
 #    "PLR2004", # Magic value used in comparison, ...

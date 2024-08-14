@@ -13,7 +13,7 @@ STATUS_ROUTING_KEY = (
 
 
 class DummyScada(ActorBase):
-    def __init__(self, settings: GNodeSettings):
+    def __init__(self, settings: GNodeSettings) -> None:
         settings.g_node_alias = "d1.isone.me.versant.keene.beech.scada"
         settings.g_node_role_value = "Scada"
         self.folder_base = "tests/sample_scada_messages/"
@@ -29,9 +29,6 @@ class DummyScada(ActorBase):
             "gw." + self.alias.replace(".", "-") + "." + type_name.replace(".", "-")
         )
 
-        assert status_file.split("-")[0] == self.alias
-        assert status_file.split("-")[1] == type_name
-        assert routing_key == STATUS_ROUTING_KEY
         path = Path(self.folder_base + status_file)
         with path.open() as f:
             payload_dict = json.load(f)
@@ -49,4 +46,4 @@ class DummyScada(ActorBase):
             body=payload_bytes,
             properties=properties,
         )
-        print(f"Sent msg with routing key {routing_key} to amq.topic")
+        print(f"Sent msg with routing key {routing_key} to amq.topic")  # noqa: T201

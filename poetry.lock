@@ -79,17 +79,17 @@ lxml = ["lxml"]
 
 [[package]]
 name = "boto3"
-version = "1.34.158"
+version = "1.34.160"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.34.158-py3-none-any.whl", hash = "sha256:c29e9b7e1034e8734ccaffb9f2b3f3df2268022fd8a93d836604019f8759ce27"},
-    {file = "boto3-1.34.158.tar.gz", hash = "sha256:5b7b2ce0ec1e498933f600d29f3e1c641f8c44dd7e468c26795359d23d81fa39"},
+    {file = "boto3-1.34.160-py3-none-any.whl", hash = "sha256:bf3153bf5d66be2bb2112edc94eb143c0cba3fb502c5591437bd1c54f57eb559"},
+    {file = "boto3-1.34.160.tar.gz", hash = "sha256:79450f92188a8b992b3d0b802028acadf448bc6fdde877c3262c9f94d74d1c7d"},
 ]
 
 [package.dependencies]
-botocore = ">=1.34.158,<1.35.0"
+botocore = ">=1.34.160,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -98,13 +98,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "boto3-stubs"
-version = "1.34.158"
-description = "Type annotations for boto3 1.34.158 generated with mypy-boto3-builder 7.25.0"
+version = "1.34.160"
+description = "Type annotations for boto3 1.34.160 generated with mypy-boto3-builder 7.25.3"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3_stubs-1.34.158-py3-none-any.whl", hash = "sha256:09801d3483b4325e14825579ccf3c44017c094559f22a5aafcce6fa9750cb939"},
-    {file = "boto3_stubs-1.34.158.tar.gz", hash = "sha256:00f102935993e0d090427ac792a4ec5390e4d670fac39c5b5cd43d99bd048dce"},
+    {file = "boto3_stubs-1.34.160-py3-none-any.whl", hash = "sha256:7e499b74d53e8eb456e539b3c82ccb6b88038579e3434fb131d51a8abe11dc83"},
+    {file = "boto3_stubs-1.34.160.tar.gz", hash = "sha256:c6b1dfeb3cae673eed596f01409339e2e0b955a5241a16cee69f29303d9b37de"},
 ]
 
 [package.dependencies]
@@ -155,7 +155,7 @@ bedrock-agent = ["mypy-boto3-bedrock-agent (>=1.34.0,<1.35.0)"]
 bedrock-agent-runtime = ["mypy-boto3-bedrock-agent-runtime (>=1.34.0,<1.35.0)"]
 bedrock-runtime = ["mypy-boto3-bedrock-runtime (>=1.34.0,<1.35.0)"]
 billingconductor = ["mypy-boto3-billingconductor (>=1.34.0,<1.35.0)"]
-boto3 = ["boto3 (==1.34.158)", "botocore (==1.34.158)"]
+boto3 = ["boto3 (==1.34.160)", "botocore (==1.34.160)"]
 braket = ["mypy-boto3-braket (>=1.34.0,<1.35.0)"]
 budgets = ["mypy-boto3-budgets (>=1.34.0,<1.35.0)"]
 ce = ["mypy-boto3-ce (>=1.34.0,<1.35.0)"]
@@ -505,13 +505,13 @@ xray = ["mypy-boto3-xray (>=1.34.0,<1.35.0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.158"
+version = "1.34.160"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.34.158-py3-none-any.whl", hash = "sha256:0e6fceba1e39bfa8feeba70ba3ac2af958b3387df4bd3b5f2db3f64c1754c756"},
-    {file = "botocore-1.34.158.tar.gz", hash = "sha256:5934082e25ad726673afbf466092fb1223dafa250e6e756c819430ba6b1b3da5"},
+    {file = "botocore-1.34.160-py3-none-any.whl", hash = "sha256:39bcf31318a062a8a9260bf7044131694ed18f019568d2eba0a22164fdca49bd"},
+    {file = "botocore-1.34.160.tar.gz", hash = "sha256:a5fd531c640fb2dc8b83f264efbb87a6e33b9c9f66ebbb1c61b42908f2786cac"},
 ]
 
 [package.dependencies]
@@ -524,13 +524,13 @@ crt = ["awscrt (==0.21.2)"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.34.158"
+version = "1.34.160"
 description = "Type annotations and code completion for botocore"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "botocore_stubs-1.34.158-py3-none-any.whl", hash = "sha256:32fb2f944917d4765146a45ff4d13fa5407e9ce9d51f46d41a3ec1b421922afb"},
-    {file = "botocore_stubs-1.34.158.tar.gz", hash = "sha256:5de0c9e6e67870b1320664dc50bf53dbf6de52292cb96d8f081358914f0a010e"},
+    {file = "botocore_stubs-1.34.160-py3-none-any.whl", hash = "sha256:b16122567dbf0860a76960ea4b94a396f16ba1a6afb9577dcc11dcd55047c42b"},
+    {file = "botocore_stubs-1.34.160.tar.gz", hash = "sha256:900953f3f926d205505776535fd131047ef89519734f1e5365d03ecbaec53cd9"},
 ]
 
 [package.dependencies]
@@ -936,13 +936,13 @@ python-dotenv = ">=1.0.0"
 
 [[package]]
 name = "gridworks-base"
-version = "0.1.4"
+version = "0.1.6"
 description = "Gridworks Base"
 optional = false
 python-versions = "<4.0,>=3.11"
 files = [
-    {file = "gridworks_base-0.1.4-py3-none-any.whl", hash = "sha256:f8b74129bb43988e259f4247ca43d14787367078b6d96b9fc93bbfe2664ee50a"},
-    {file = "gridworks_base-0.1.4.tar.gz", hash = "sha256:efd9693a66d12cd37874312066a5c8ebc220cb35a50f1ae92b8c564f2b9190c6"},
+    {file = "gridworks_base-0.1.6-py3-none-any.whl", hash = "sha256:7ccaa1d5d27aa6fcf002305532e3694318f758e27fd8b243186eaa8bd1a6faa1"},
+    {file = "gridworks_base-0.1.6.tar.gz", hash = "sha256:876a8a7fe0a763ea9e829944d0779445f48ea3d8989f05eca35b1ee01d45d136"},
 ]
 
 [package.dependencies]
@@ -1286,13 +1286,13 @@ reports = ["lxml"]
 
 [[package]]
 name = "mypy-boto3-s3"
-version = "1.34.138"
-description = "Type annotations for boto3.S3 1.34.138 service generated with mypy-boto3-builder 7.25.0"
+version = "1.34.158"
+description = "Type annotations for boto3.S3 1.34.158 service generated with mypy-boto3-builder 7.25.3"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mypy_boto3_s3-1.34.138-py3-none-any.whl", hash = "sha256:47ded5f06accc10ff9db9d55c85cca88e4f028ec360d7cfcea90377e525cba56"},
-    {file = "mypy_boto3_s3-1.34.138.tar.gz", hash = "sha256:7f9770d1f0e9f6fc2ced96daf5c0792b2dbbb4a4f874f28200ff3c940d0815c3"},
+    {file = "mypy_boto3_s3-1.34.158-py3-none-any.whl", hash = "sha256:c01f1b2304ba7718c8561aaa2b6dc70fe438c91964256aa6ddc508d1cc553c66"},
+    {file = "mypy_boto3_s3-1.34.158.tar.gz", hash = "sha256:a875eb0ee91ba5ac6967291887f6e924eb9dc157966e8181da20533086218166"},
 ]
 
 [[package]]
@@ -2176,13 +2176,13 @@ files = [
 
 [[package]]
 name = "soupsieve"
-version = "2.5"
+version = "2.6"
 description = "A modern CSS selector implementation for Beautiful Soup."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "soupsieve-2.5-py3-none-any.whl", hash = "sha256:eaa337ff55a1579b6549dc679565eac1e3d000563bcb1c8ab0d0fefbc0c2cdc7"},
-    {file = "soupsieve-2.5.tar.gz", hash = "sha256:5663d5a7b3bfaeee0bc4372e7fc48f9cff4940b3eec54a6451cc5299f1097690"},
+    {file = "soupsieve-2.6-py3-none-any.whl", hash = "sha256:e72c4ff06e4fb6e4b5a9f0f55fe6e81514581fca1515028625d0f299c602ccc9"},
+    {file = "soupsieve-2.6.tar.gz", hash = "sha256:e2e68417777af359ec65daac1057404a3c8a5455bb8abc36f1a9866ab1a51abb"},
 ]
 
 [[package]]
@@ -2476,13 +2476,13 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "uvicorn"
-version = "0.30.5"
+version = "0.30.6"
 description = "The lightning-fast ASGI server."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "uvicorn-0.30.5-py3-none-any.whl", hash = "sha256:b2d86de274726e9878188fa07576c9ceeff90a839e2b6e25c917fe05f5a6c835"},
-    {file = "uvicorn-0.30.5.tar.gz", hash = "sha256:ac6fdbd4425c5fd17a9fe39daf4d4d075da6fdc80f653e5894cdc2fd98752bee"},
+    {file = "uvicorn-0.30.6-py3-none-any.whl", hash = "sha256:65fd46fe3fda5bdc1b03b94eb634923ff18cd35b2f084813ea79d1f103f711b5"},
+    {file = "uvicorn-0.30.6.tar.gz", hash = "sha256:4b15decdda1e72be08209e860a1e10e92439ad5b97cf44cc945fcbee66fc5788"},
 ]
 
 [package.dependencies]
@@ -2733,4 +2733,4 @@ tests-strict = ["pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==6.2.5)", "pyt
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "9f303cdaaade04f5e71bdb7e9255f63d7c80a4a1519c4aa2a83c95768ea1e471"
+content-hash = "6638c185d31c4c6493b0c5b61e1367d843f843f6ea956346a93f307f83e5c55b"
