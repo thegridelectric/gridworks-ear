@@ -102,6 +102,7 @@ class Ear(ActorBase):
         self.cron_last_min_file = STATE_DIRECTORY / self.settings.minute_cron_file
         self.cron_last_hour_file = STATE_DIRECTORY / self.settings.hour_cron_file
         self.cron_last_day_file = STATE_DIRECTORY / self.settings.day_cron_file
+        STATE_DIRECTORY.mkdir(exist_ok=True, parents=True)
         self.cron_last_min_file.touch()
         self.cron_last_hour_file.touch()
         self.cron_last_day_file.touch()

@@ -41,6 +41,4 @@ def test_start_one_message() -> None:
         )
     finally:
         with contextlib.suppress(Exception):
-            print(1)
             ear.stop()
-            print(2)
