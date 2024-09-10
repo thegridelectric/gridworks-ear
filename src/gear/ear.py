@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import logging
 import os
@@ -140,8 +141,13 @@ class Ear(ActorBase):
         """This overwrites local_start in actor_base, used for additional threads.
         It cannot assume the rabbit channels are established and that
         messages can be received or sent."""
-        self.main_thread.start()
+
+        # _main_loop_running MUST be true prior to starting the main thread and
+        # prior to this function exiting.
+        # That way, a caller to ear.start() can reliably assume that if
+        # _main_loop_running is NOT true, the main thread has exited.
         self._main_loop_running = True
+        self.main_thread.start()
 
     def local_stop(self) -> None:
         self._main_loop_running = False
@@ -413,25 +419,36 @@ class Ear(ActorBase):
         LGST.info("--cron_every_day")
 
     def main(self) -> None:
-        LGST.info("++Ear.main")
+        LGST.info("++ear.main")
+        path_dbg = 0
         count_dbg = 0
-        while self._main_loop_running:
-            LGST.info(f"++ear.main  itr:{count_dbg:3d}")
-            path_dbg = 0
-            if self.time_for_hour_cron():
-                path_dbg |= 0x00000001
-                self.cron_every_hour()
-            if self.time_for_day_cron():
-                path_dbg |= 0x00000002
-                self.cron_every_day()
-            sleep_seconds = min(max(self.next_hour_cron_s - time.time(), 0), 5 * 60)
-            self.log_times()
-            LGST.info(
-                f"--ear.main  itr:{count_dbg:3d}  sleep_seconds:{sleep_seconds}  path:0x{path_dbg:08X}"
-            )
-            count_dbg += 1
-            responsive_sleep(self, seconds=sleep_seconds)
-        LGST.info("--Ear.main")
+        try:
+            while self._main_loop_running:
+                LGST.info(f"++ear.main.itr:{count_dbg:3d}")
+                loop_path_dbg = 0
+                if self.time_for_hour_cron():
+                    loop_path_dbg |= 0x00000001
+                    self.cron_every_hour()
+                if self.time_for_day_cron():
+                    loop_path_dbg |= 0x00000002
+                    self.cron_every_day()
+                sleep_seconds = min(max(self.next_hour_cron_s - time.time(), 0), 5 * 60)
+                self.log_times()
+                LGST.info(
+                    f"--ear.main.itr:{count_dbg:3d}  sleep_seconds:{sleep_seconds}  path:0x{loop_path_dbg:08X}"
+                )
+                count_dbg += 1
+                responsive_sleep(self, seconds=sleep_seconds)
+                path_dbg |= loop_path_dbg
+        except Exception as e:  # noqa: BLE001
+            path_dbg |= 0x00000100
+            s = "ERROR. ear main() exited with exception "
+            with contextlib.suppress(Exception):
+                s += f"{type(e).__name__}: {e}"
+            LGST.exception(s)
+        finally:
+            self._main_loop_running = False
+        LGST.info(f"--ear.main  itr:{count_dbg:3d}  path:0x{path_dbg:08X}")
 
     def log_times(self) -> None:
         if LGST.isEnabledFor(logging.INFO):

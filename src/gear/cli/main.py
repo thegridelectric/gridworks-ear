@@ -8,6 +8,7 @@ from typing import Annotated
 import dotenv
 import rich
 import typer
+from gw.utils import responsive_sleep
 
 from gear.cli.dummy import DummyScada
 from gear.cli.service import app as service_app
@@ -109,7 +110,7 @@ def listen(*, s3: bool = True) -> None:
     ear.start()
     try:
         while ear.main_loop_running:
-            time.sleep(5)
+            responsive_sleep(ear, seconds=5)
     except KeyboardInterrupt:
         s = "Ear stopped by keyboard interrupt."
         rich.print(s)
