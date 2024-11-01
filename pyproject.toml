@@ -26,10 +26,10 @@ python = "^3.12"
 boto3 = "^1.26.37"
 slack-sdk = "^3.19.5"
 pendulum = "^3.0.0"
-gridworks = "^1.1.7"
+gridworks = "^1.4.1"
 #gridworks = {path="../gridworks", develop=true}
 #gridworks = {git = "https://github.com/thegridelectric/gridworks.git", branch="SOME_DEV_BRANCH"}
-gridworks-base = "^0.1.6"
+gridworks-base = "^0.2.3"
 #gridworks-base = {path="../gridworks-base", develop=true}
 #gridworks-base = {git = "https://github.com/thegridelectric/gridworks-base.git", branch="SOME_DEV_BRANCH"}
 typer = "^0.12.3"
