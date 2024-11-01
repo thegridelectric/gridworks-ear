@@ -19,7 +19,7 @@ from gw.utils import responsive_sleep
 from gwbase import ActorBase
 from gwbase.actor_base import OnReceiveMessageDiagnostic
 from gwbase.enums import UniverseType
-from gwbase.types import HeartbeatA
+from gwbase.named_types import HeartbeatA
 from mypy_boto3_s3.service_resource import S3ServiceResource
 from pika.channel import Channel as PikaChannel
 from pika.frame import Method as FrameMethod
