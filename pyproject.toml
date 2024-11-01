@@ -29,12 +29,12 @@ pendulum = "^3.0.0"
 gridworks = "^1.4.1"
 #gridworks = {path="../gridworks", develop=true}
 #gridworks = {git = "https://github.com/thegridelectric/gridworks.git", branch="SOME_DEV_BRANCH"}
-gridworks-base = "^0.2.3"
 #gridworks-base = {path="../gridworks-base", develop=true}
 #gridworks-base = {git = "https://github.com/thegridelectric/gridworks-base.git", branch="SOME_DEV_BRANCH"}
 typer = "^0.12.3"
 xdg = "^6.0.0"
 boto3-stubs = {extras = ["s3"], version = "^1.34.158"}
+gridworks-base = "^0.2.4"
 
 [tool.poetry.group.dev.dependencies]
 Pygments = ">=2.10.0"

@@ -11,6 +11,17 @@
 
 The GridWorks ear is responsible for putting all messages on its production world broker into persistent store.
 
+
+1. Log into the instance 
+  -  uses `gridworks-main.pem`
+  - `ssh ubuntu@hw1-1-s3-ear.electricity.works`
+2. ear service --help
+ - ear service status
+
+Also, there is an `ear` tmux running tail -n 500 -f state.txt in
+
+~/.local/state/gridworks/ear/log
+
 ## Contributing
 
 For development, you will need a local dev rabbit broker. Set that up by downloading the gridworks-base repo and following the instructions [here](https://github.com/thegridelectric/gridworks-base?tab=readme-ov-file#dev-rabbit-broker) in its Readme.
