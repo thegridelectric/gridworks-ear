@@ -22,6 +22,30 @@ Also, there is an `ear` tmux running tail -n 500 -f state.txt in
 
 ~/.local/state/gridworks/ear/log
 
+## Configurable exchange — running a scoped second instance
+
+The exchange the ear's queue binds (`#`) is configuration:
+`EAR_CONSUME_EXCHANGE`, default `ear_tx` (the universal audit tap — the
+production ear needs no change). Pointing a **second instance** at a scoped
+exchange captures a small, precious stream into its own store with the same
+proven code. The first such instance is the **seed ear**: the Grid Node
+Registry's slice (`gnr_ear_tx` — everything said to and by the registry:
+create/re-parent commands, forest broadcasts, and the ack/nack write
+verdicts, refusals included), written to the `gw-seedstore` bucket so the
+fleet's topology record is findable at a glance rather than buried in the
+telemetry torrent.
+
+A second instance = a second `.env` + a second systemd unit:
+
+```
+EAR_CONSUME_EXCHANGE=gnr_ear_tx
+EAR_WORLD_INSTANCE_ALIAS=hw1__1
+EAR_AWS__BUCKET_NAME=gw-seedstore     # (the AwsClient bucket field)
+```
+
+with the service otherwise configured like the main ear. Same key grammar,
+same S3 layout — readers swap only the bucket name.
+
 ## Contributing
 
 For development, you will need a local dev rabbit broker. Set that up by downloading the gridworks-base repo and following the instructions [here](https://github.com/thegridelectric/gridworks-base?tab=readme-ov-file#dev-rabbit-broker) in its Readme.

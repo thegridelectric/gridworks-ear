@@ -83,7 +83,7 @@ class Ear(ActorBase):
         super().__init__(settings=settings)
         self.hb_int: int = 0
         self.settings: EarSettings = settings
-        self._consume_exchange = "ear_tx"
+        self._consume_exchange = settings.consume_exchange
         self.use_s3 = use_s3
         self.s3_put_works: bool = self.use_s3
         self.local_cache_dir = OUTPUT_DIRECTORY / (
@@ -114,7 +114,9 @@ class Ear(ActorBase):
 
     def on_queue_declareok(self, _unused_frame: FrameMethod) -> None:
         """
-        OVERWRITE base class method. Binds to everything in ear_tx
+        OVERWRITE base class method. Binds to everything (`#`) in the
+        configured consume exchange (default `ear_tx`; a scoped tap like
+        `gnr_ear_tx` for a second, seed-store instance).
         Method invoked by pika when the Queue.Declare RPC call made in
         setup_queue has completed. In this method we will bind the queue
         and exchange together with the routing key by issuing the Queue.Bind
@@ -125,14 +127,14 @@ class Ear(ActorBase):
 
         LGST.info(
             "Binding %s to %s with %s",
+            self.queue_name,
             self._consume_exchange,
-            "ear_tx",
             "#",
         )
         cb = functools.partial(self.on_direct_message_bindok, binding="#")
         self._single_channel.queue_bind(
             self.queue_name,
-            "ear_tx",
+            self._consume_exchange,
             routing_key="#",
             callback=cb,
         )

@@ -26,6 +26,11 @@ class EarSettings(GNodeSettings):
     g_node_alias: str = "d1.ear"
     g_node_id: str = "00000000-0000-0000-0000-000000000000"
     world_instance_alias: str = "d1__1"
+    # The exchange this ear's queue binds (`#`). Default = the universal
+    # audit tap; a second instance may point at a scoped tap instead (e.g.
+    # `gnr_ear_tx`, the registry slice) to capture a small precious stream
+    # into its own store — same code, different slice, different bucket.
+    consume_exchange: str = "ear_tx"
     my_fqdn: str = "localhost"  # the fqdn for the ear
     aws: AwsClient = AwsClient()
     slack: SlackClient = SlackClient()
