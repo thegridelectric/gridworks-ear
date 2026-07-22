@@ -36,7 +36,7 @@ jobs:
         if: runner.os != 'Windows'
       ###############################
       - name: Check out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Start World Broker
         uses: namoshek/rabbitmq-github-action@v1
@@ -47,7 +47,7 @@ jobs:
           container-name: "rabbit"
 
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
@@ -92,7 +92,7 @@ jobs:
           print("::set-output name=result::{}".format(result))
 
       - name: Restore pre-commit cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         if: matrix.session == 'pre-commit'
         with:
           path: ~/.cache/pre-commit
@@ -106,14 +106,14 @@ jobs:
 
       - name: Upload coverage data
         if: matrix.session == 'tests' && matrix.python == '3.10' && matrix.os == 'ubuntu-latest'
-        uses: "actions/upload-artifact@v3"
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-data
           path: ".coverage.*"
 
       - name: Upload documentation
         if: matrix.session == 'docs-build'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docs
           path: docs/_build
@@ -123,10 +123,10 @@ jobs:
   #   needs: tests
   #   steps:
   #     - name: Check out the repository
-  #       uses: actions/checkout@v3
+  #       uses: actions/checkout@v4
 
   #     - name: Set up Python
-  #       uses: actions/setup-python@v4
+  #       uses: actions/setup-python@v5
   #       with:
   #         python-version: "3.11"
 
