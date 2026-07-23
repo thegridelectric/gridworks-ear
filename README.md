@@ -148,20 +148,24 @@ Without a broker the suite self-skips.
 
 ## Deployment
 
-One login per instance, each with its own clone, `.env`, venv, logs, and
-aliases:
-
-| login | unit | aliases |
-|---|---|---|
-| `ear` | [`service/ear.service`](service/ear.service) | [`service/ear_bash_aliases`](service/ear_bash_aliases) (`earstart` `earstop` `earrestart` `earstatus` `earlog`) |
-| `gnrear` | [`service/gnr-ear.service`](service/gnr-ear.service) | [`service/gnr_ear_bash_aliases`](service/gnr_ear_bash_aliases) (`gnrearstart` … `gnrearlog`) |
+The repo ships one generic systemd **template unit**,
+[`service/ear@.service`](service/ear@.service) — as generic as the code.
+One ear instance = one login on the box, and the systemd instance name is
+the login: the universal ear runs as `ear@ear`, a scoped instance as
+`ear@<login>`. Everything instance-specific (exchange, bucket, endpoint,
+identity) lives in that login's `.env`, so a new instance costs a login
+plus a `.env` — no repo change.
 
 Per instance: clone at `~/gridworks-ear` (clean pushed SHA only), `uv sync
---frozen`, copy the unit to `/etc/systemd/system/`, `.env` from the
-matching `service/template.*.env`, S3 credentials in the login's
-`~/.aws/credentials`, aliases sourced from `~/.bashrc` with a matching
-narrow sudoers drop-in. Which box, DNS, and secrets are operational
-matters recorded in the private `gridworks-infra` repo, not here.
+--frozen`, `.env` from [`service/template.env`](service/template.env), S3
+credentials in the login's `~/.aws/credentials`, aliases (e.g.
+[`service/ear_bash_aliases`](service/ear_bash_aliases): `earstart`
+`earstop` `earrestart` `earstatus` `earlog`) sourced from `~/.bashrc` with
+a matching narrow sudoers drop-in. Root copies the template unit once
+(`cp service/ear@.service /etc/systemd/system/`), then
+`systemctl enable --now ear@<login>`. Which instances exist, on which box,
+with which secrets are operational matters recorded in the private
+`gridworks-infra` repo, not here.
 
 ## License
 
