@@ -1,0 +1,8 @@
+# gnr-seed-ear convenience aliases — pure spelling over systemctl/tail, no
+# logic. Sourced from the gnrear login's ~/.bashrc at box setup; the sudoers
+# drop-in (/etc/sudoers.d/gnrear) grants exactly these systemctl invocations.
+alias gnrearstart='sudo systemctl start gnr-ear'
+alias gnrearstop='sudo systemctl stop gnr-ear'
+alias gnrearrestart='sudo systemctl restart gnr-ear'
+alias gnrearstatus='systemctl status gnr-ear --no-pager'
+alias gnrearlog='tail -F "$HOME"/.local/state/gridworks/ear/log/state.txt'

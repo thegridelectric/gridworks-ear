@@ -11,7 +11,6 @@ import typer
 from gw.utils import responsive_sleep
 
 from gear.cli.dummy import DummyScada
-from gear.cli.service import app as service_app
 from gear.config import EarSettings
 from gear.ear import Ear
 from gear.utils import (
@@ -28,11 +27,6 @@ from gear.utils import EAR_MESSAGE_LOGGER as LGMSG
 from gear.utils import EAR_STATE_LOGGER as LGST
 
 app = typer.Typer(no_args_is_help=True)
-app.add_typer(
-    service_app,
-    name="service",
-    help="Interact with gridworks-ear systemd service.",
-)
 
 VERBOSITY_INFO = 1
 VERBOSITY_DEBUG = 2

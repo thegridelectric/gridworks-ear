@@ -18,39 +18,32 @@ dependencies = [
     "pendulum>=3.0.0,<4",
     "gridworks>=1.4.1,<2",
     "typer>=0.12.3,<0.13",
+    # typer 0.12 breaks against click >= 8.2 ("Secondary flag is not valid
+    # for non-boolean flag" at CLI build); hold click to the era typer 0.12
+    # was written against.
+    "click>=8.1,<8.2",
     "xdg>=6.0.0,<7",
     "boto3-stubs[s3]>=1.34.158,<2",
     "gridworks-base>=0.2.4,<0.3",
+    "rich>=13.7.1,<14",
 ]
 
 [project.urls]
 homepage = "https://github.com/thegridelectric/gridworks-ear"
 repository = "https://github.com/thegridelectric/gridworks-ear"
-documentation = "https://gridworks-ear.readthedocs.io"
-Changelog = "https://github.com/thegridelectric/gridworks-ear/releases"
 
 [project.scripts]
 ear = "gear.__main__:app"
 
 [dependency-groups]
 dev = [
-    "Pygments>=2.10.0",
-    "coverage[toml]>=6.2",
-    "furo>=2021.11.12",
     "mypy>=0.930",
-    "pep8-naming>=0.12.1",
     "pre-commit>=2.16.0",
     "pre-commit-hooks>=4.1.0",
     "pytest>=6.2.5",
     "pyupgrade>=2.29.1",
-    "sphinx>=4.3.2",
-    "sphinx-autobuild>=2021.3.14",
-    "sphinx-click>=3.0.2",
-    "xdoctest[colors]>=0.15.10",
-    "myst-parser>=0.16.1",
     "pika-stubs>=0.1.3,<0.2",
     "ruff>=0.5.6,<0.6",
-    "rich>=13.7.1,<14",
 ]
 
 [build-system]
@@ -59,23 +52,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gear"]
-
-[tool.coverage.paths]
-source = ["src", "*/site-packages"]
-tests = ["tests", "*/tests"]
-
-[tool.coverage.run]
-branch = true
-source = ["gear", "tests"]
-
-[tool.coverage.report]
-show_missing = false
-fail_under = 15
-
-[tool.isort]
-profile = "black"
-force_single_line = true
-lines_after_imports = 2
 
 [tool.mypy]
 strict = true
@@ -86,29 +62,6 @@ show_error_codes = true
 show_error_context = false
 
 [tool.ruff]
-exclude = [
-    ".ci",
-    ".github",
-    "for_docker",
-    "docs",
-    ".git",
-    ".mypy_cache",
-    ".nox",
-    "htmlcov",
-    ".pyenv",
-    ".pytest_cache",
-    ".pytype",
-    ".ruff_cache",
-    ".venv",
-    ".vscode",
-    "pythonProject",
-    ".idea",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-]
 output-format = "concise"
 fix = true
 show-fixes = true

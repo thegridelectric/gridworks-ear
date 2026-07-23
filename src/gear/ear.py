@@ -43,13 +43,6 @@ MINIMUM_SCADA_REPORT_SECONDS = 10 * 60
 THIRTY_MINUTES = 1800
 
 
-def get_folder_size(bucket: str, prefix: str) -> int:
-    total_size = 0
-    for obj in boto3.resource("s3").Bucket(bucket).objects.filter(Prefix=prefix):
-        total_size += obj.size
-    return total_size
-
-
 class MessagePlus(BaseModel):
     KafkaTopic: str
     TimeReceivedUnixMs: int
@@ -197,14 +190,14 @@ class Ear(ActorBase):
         except GwTypeError:
             return
 
-        kafka_topic = f"{from_alias}-{type_name}"
+        from_alias_and_type = f"{from_alias}-{type_name}"
         if msg_category == MessageCategory.RabbitGwSerial:
             file_name = (
-                f"{kafka_topic}-{int(time.time() * 1000)}-{self.settings.my_fqdn}.txt"
+                f"{from_alias_and_type}-{int(time.time() * 1000)}-{self.alias}.txt"
             )
         else:
             file_name = (
-                f"{kafka_topic}-{int(time.time() * 1000)}-{self.settings.my_fqdn}.json"
+                f"{from_alias_and_type}-{int(time.time() * 1000)}-{self.alias}.json"
             )
 
         if self.use_s3 and self.s3_put_works:
@@ -247,9 +240,9 @@ class Ear(ActorBase):
     def update_s3_put_works(self) -> None:
         self.hb_int = (self.hb_int + 1) % 16
         h = HeartbeatA(my_hex=f"{self.hb_int:x}")
-        kafka_topic = f"{self.alias}-{h.type_name}"
+        from_alias_and_type = f"{self.alias}-{h.type_name}"
         self.put_in_s3(
-            file_name=f"{kafka_topic}-{self.settings.my_fqdn}.json",
+            file_name=f"{from_alias_and_type}-{self.alias}.json",
             payload=h.as_type(),
         )
 
@@ -269,11 +262,14 @@ class Ear(ActorBase):
         path_name = f"{self.output_folder_root}/{file_name}"
         if self.s3_resource is None:
             self.s3_resource = boto3.Session(
-                region_name=self.settings.aws.region_name,
-                profile_name=self.settings.aws.profile_name,
-            ).resource("s3")
+                region_name=self.settings.s3.region_name,
+                profile_name=self.settings.s3.profile_name,
+            ).resource(
+                "s3",
+                endpoint_url=self.settings.s3.endpoint_url or None,
+            )
 
-        s3_object = self.s3_resource.Object(self.settings.aws.bucket_name, path_name)
+        s3_object = self.s3_resource.Object(self.settings.s3.bucket_name, path_name)
         s3_put_worked = False
         log_note = ""
         s3_put_result = None
@@ -397,9 +393,7 @@ class Ear(ActorBase):
             > THIRTY_MINUTES
         ):
             path_dbg |= 0x00000001
-            warning_message = (
-                f"Ear service {self.settings.my_fqdn} heard 0 messages last hour"
-            )
+            warning_message = f"Ear service {self.alias} heard 0 messages last hour"
             LGST.warning(warning_message)
             LG.warning(warning_message)
             send_warning_to_slack(

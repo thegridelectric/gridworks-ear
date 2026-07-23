@@ -11,13 +11,19 @@ class SlackClient(BaseModel):
     web_hook_url: str = ""
 
 
-class AwsClient(BaseModel):
-    """Settings for interacting with Aws"""
+class S3TypeClient(BaseModel):
+    """Settings for interacting with an S3-compatible object store.
+
+    Default endpoint (empty `endpoint_url`) is AWS S3, as always. Setting
+    `endpoint_url` aims the same boto3 client at any S3-compatible host —
+    e.g. Backblaze B2 (`https://s3.us-east-005.backblazeb2.com`) for the
+    seed ear's `gw-seedstore`."""
 
     profile_name: str = "default"
     region_name: str = "us-east-1"
     hosted_zone_id: SecretStr = SecretStr("")
     bucket_name: str = "gwdev"
+    endpoint_url: str = ""
 
 
 class EarSettings(GNodeSettings):
@@ -31,8 +37,7 @@ class EarSettings(GNodeSettings):
     # `gnr_ear_tx`, the registry slice) to capture a small precious stream
     # into its own store — same code, different slice, different bucket.
     consume_exchange: str = "ear_tx"
-    my_fqdn: str = "localhost"  # the fqdn for the ear
-    aws: AwsClient = AwsClient()
+    s3: S3TypeClient = S3TypeClient()
     slack: SlackClient = SlackClient()
     minute_cron_file: str = "cron_last_minute.txt"
     hour_cron_file: str = "cron_last_hour.txt"
