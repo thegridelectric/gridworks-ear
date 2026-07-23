@@ -1,43 +1,57 @@
+"""Layer-1 liveness: publish one message through a real broker; the ear
+(running without S3) must hear it and count it. Needs the gwbase dev broker
+(`gw-dev-rabbit`, topology baked); self-skips in CI, whose bare broker has
+no gwbase topology."""
+
 import contextlib
 import os
+import time
+import uuid
+from collections.abc import Callable
 
-import dotenv
-import rich
-from gear.cli.main import app
+import pika
 from gear.config import EarSettings
 from gear.ear import Ear
-from gw_test import wait_for
-from typer.testing import CliRunner
 
-runner = CliRunner()
+# rjb.<from-alias-lrh>.<from-rc>.<type-lrh> — a broadcast shape; the dev
+# topology fans amq.topic into ear_tx, which the ear binds with `#`.
+TEST_ROUTING_KEY = "rjb.d1-super1.super.hb-a"
+
+
+def wait_for(f: "Callable[[], bool]", timeout: float, tag: str) -> None:
+    start = time.time()
+    while time.time() - start < timeout:
+        if f():
+            return
+        time.sleep(0.05)
+    msg = f"timed out after {timeout}s: {tag}"
+    raise AssertionError(msg)
 
 
 def test_start_one_message() -> None:
-    settings = EarSettings(_env_file=dotenv.find_dotenv())
-    rich.print("Using settings:")
-    rich.print(settings)
-    ear = Ear(settings, use_s3=False)
     if "GITHUB_ACTIONS" in os.environ:
-        print(
-            "Running in CI. Exiting this test, which fails in CI, with the ear"
-            " not receiving a message",
-        )
+        print("CI has a bare broker (no gwbase topology); skipping.")
         return
+    settings = EarSettings(service_alias=f"d1.tap{uuid.uuid4().hex[:4]}")
+    ear = Ear(settings, use_s3=False)
     ear.start()
     try:
-        messages_heard_start = ear.messages_heard_total
-        dummy_result = runner.invoke(app, ["dummy"])
-        assert dummy_result.exit_code == 0, (
-            f"ERROR running dummy: {dummy_result.exit_code}\n"
-            f"stdout:\n{dummy_result.stdout}\n"
-            f"stderr:\n{dummy_result.stderr}"
+        wait_for(lambda: ear._consuming, timeout=10.0, tag="ear consuming")  # noqa: SLF001
+        heard_start = ear.messages_heard_total
+        conn = pika.BlockingConnection(
+            pika.URLParameters(settings.rabbit.url.get_secret_value())
         )
-        print(dummy_result.output)
-
+        ch = conn.channel()
+        ch.basic_publish(
+            exchange="amq.topic",
+            routing_key=TEST_ROUTING_KEY,
+            body=b'{"TypeName": "hb.a", "MyHex": "0"}',
+        )
+        conn.close()
         wait_for(
-            f=lambda: ear.messages_heard_total > messages_heard_start,
-            timeout=2.0,
-            tag=f"Wait for Ear to receive dummy more than {messages_heard_start} messages",
+            lambda: ear.messages_heard_total > heard_start,
+            timeout=5.0,
+            tag="ear hears the published message",
         )
     finally:
         with contextlib.suppress(Exception):

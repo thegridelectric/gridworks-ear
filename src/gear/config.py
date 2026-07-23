@@ -1,14 +1,10 @@
-"""Settings for the GridWorks Ear, readable from environment and/or from env files."""
+"""Settings for the GridWorks Ear, readable from environment and/or env files."""
 
-from gwbase.config import GNodeSettings
-from pydantic import BaseModel, SecretStr
-from pydantic_settings import BaseSettings
+from gwbase import ServiceSettings
+from pydantic import BaseModel
+from pydantic_settings import SettingsConfigDict
 
 DEFAULT_ENV_FILE = ".env"
-
-
-class SlackClient(BaseModel):
-    web_hook_url: str = ""
 
 
 class S3TypeClient(BaseModel):
@@ -21,38 +17,27 @@ class S3TypeClient(BaseModel):
 
     profile_name: str = "default"
     region_name: str = "us-east-1"
-    hosted_zone_id: SecretStr = SecretStr("")
     bucket_name: str = "gwdev"
     endpoint_url: str = ""
 
 
-class EarSettings(GNodeSettings):
-    """Settings for the GridWorks ear."""
+class EarSettings(ServiceSettings):
+    """The ear as a gwbase service: `ServiceSettings` identity (the
+    `service_alias` is the witness identity — last segment of every object
+    key) plus the ear's own wires. One env prefix: `EAR_`."""
 
-    g_node_alias: str = "d1.ear"
-    g_node_id: str = "00000000-0000-0000-0000-000000000000"
+    service_name: str = "ear"  # XDG path segment
+    # First path segment of every object key: the world this ear witnesses.
     world_instance_alias: str = "d1__1"
     # The exchange this ear's queue binds (`#`). Default = the universal
-    # audit tap; a second instance may point at a scoped tap instead (e.g.
-    # `gnr_ear_tx`, the registry slice) to capture a small precious stream
-    # into its own store — same code, different slice, different bucket.
+    # audit tap; a scoped instance points at its slice instead (e.g.
+    # `gnr_ear_tx`, the registry slice).
     consume_exchange: str = "ear_tx"
     s3: S3TypeClient = S3TypeClient()
-    slack: SlackClient = SlackClient()
-    minute_cron_file: str = "cron_last_minute.txt"
-    hour_cron_file: str = "cron_last_hour.txt"
-    day_cron_file: str = "cron_last_day.txt"
-    hour_messages_count_file: str = "messages_heard_last_hour.txt"
 
-    class Config:
-        env_prefix = "EAR_"
-        env_nested_delimiter = "__"
-        extra = "ignore"  # Ignore extra fields in the environment
-
-
-class WatchdogSettings(BaseSettings):
-    warning_silencer_file: str = "DO_NOT_SEND_SERVICE_WARNINGS.txt"
-
-    class Config:
-        env_prefix = "WATCHDOG_"
-        env_nested_delimiter = "__"
+    model_config = SettingsConfigDict(
+        env_prefix="EAR_",
+        env_nested_delimiter="__",
+        env_file=DEFAULT_ENV_FILE,
+        extra="ignore",
+    )
