@@ -1,0 +1,18 @@
+[Unit]
+Description=GridWorks ear — audit witness instance %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The systemd instance name IS the login: ear@<login>.service.
+User=%i
+# Repo root as CWD; the ear finds the login's gitignored .env by walking
+# up from here (python-dotenv).
+WorkingDirectory=/home/%i/gridworks-ear
+ExecStart=/home/%i/gridworks-ear/.venv/bin/ear listen
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
