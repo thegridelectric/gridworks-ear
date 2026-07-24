@@ -1,8 +1,0 @@
-# universal-ear convenience aliases — pure spelling over systemctl/tail, no
-# logic. Sourced from the ear login's ~/.bashrc at box setup; the sudoers
-# drop-in (/etc/sudoers.d/ear) grants exactly these systemctl invocations.
-alias earstart='sudo systemctl start ear@ear'
-alias earstop='sudo systemctl stop ear@ear'
-alias earrestart='sudo systemctl restart ear@ear'
-alias earstatus='systemctl status ear@ear --no-pager'
-alias earlog='cd "$HOME"/.local/state/gridworks/ear/log && tail -F state.txt'

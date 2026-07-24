@@ -103,8 +103,10 @@ the sema type.
 
 If an S3 put fails, the message is written instead to the local cache
 (`~/.local/share/gridworks/ear/output/need_to_put/<world_instance_alias>/`)
-so it is not silently dropped; recovery from that cache is a manual
-operator step.
+so it is not silently dropped. While the store is down a recovery probe
+writes a tiny heartbeat object each minute; the first success drains the
+cache back into the store. A healthy ear writes no heartbeats — real
+traffic already proves the put path.
 
 ## Configuration
 
@@ -158,10 +160,12 @@ plus a `.env` — no repo change.
 
 Per instance: clone at `~/gridworks-ear` (clean pushed SHA only), `uv sync
 --frozen`, `.env` from [`service/template.env`](service/template.env), S3
-credentials in the login's `~/.aws/credentials`, aliases (e.g.
-[`service/ear_bash_aliases`](service/ear_bash_aliases): `earstart`
-`earstop` `earrestart` `earstatus` `earlog`) sourced from `~/.bashrc` with
-a matching narrow sudoers drop-in. Root copies the template unit once
+credentials in the login's `~/.aws/credentials`, and
+[`service/bash_aliases`](service/bash_aliases) sourced from `~/.bashrc`
+with a matching narrow sudoers drop-in. The aliases are generic too —
+they target `ear@$(whoami)`, so `earstart` `earstop` `earrestart`
+`earstatus` `earlog` spell the same on every ear login and control that
+login's own instance. Root copies the template unit once
 (`cp service/ear@.service /etc/systemd/system/`), then
 `systemctl enable --now ear@<login>`. Which instances exist, on which box,
 with which secrets are operational matters recorded in the private

@@ -165,12 +165,17 @@ class Ear(ActorBase):
         return False
 
     def update_s3_put_works(self) -> None:
-        """Probe: write a tiny self-heartbeat object so a downed store is
-        noticed (and `s3_put_works` restored) within a minute."""
-        self.put_in_s3(
+        """Recovery probe — runs only while the store is down. Healthy
+        traffic already proves the put path; a probe alongside it writes
+        nothing but noise (in a versioned bucket, one kept version per
+        minute). While puts are failing, this writes a tiny heartbeat each
+        minute; the first success flips `s3_put_works` back and drains the
+        local cache immediately."""
+        if self.put_in_s3(
             file_name=f"{self.alias}-hb-{self.alias}.json",
             payload=b'{"TypeName": "ear.hb"}',
-        )
+        ):
+            self.try_to_empty_cache()
 
     # ------------------------------------------------------------------
     # Local cache — failed puts park here; the hourly chore retries
@@ -199,7 +204,7 @@ class Ear(ActorBase):
     def periodic_tick(self) -> None:
         now = time.time()
         if now >= self._last_minute_s - (self._last_minute_s % 60) + 60:
-            if self.use_s3:
+            if self.use_s3 and not self.s3_put_works:
                 self.update_s3_put_works()
             self._last_minute_s = int(now)
         if now >= self._last_hour_s - (self._last_hour_s % 3600) + 3600:

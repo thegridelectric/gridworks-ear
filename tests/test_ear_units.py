@@ -100,10 +100,20 @@ def test_cache_retry_leaves_file_on_failure(ear: Ear) -> None:
     assert [p.name for p in ear.local_cache_dir.iterdir()] == ["stuck.json"]
 
 
-def test_probe_recovers_s3_put_works(ear: Ear) -> None:
+def test_probe_recovers_s3_put_works_and_drains_cache(ear: Ear) -> None:
+    (ear.local_cache_dir / "stuck.json").write_bytes(b"stuck")
     ear.s3_put_works = False
     ear.update_s3_put_works()
     assert ear.s3_put_works is True
+    assert list(ear.local_cache_dir.iterdir()) == []
+    assert fake_s3(ear).puts[-1][2] == b"stuck"
+
+
+def test_healthy_minute_tick_writes_no_heartbeat(ear: Ear) -> None:
+    ear._last_minute_s = int(time.time()) - 120  # noqa: SLF001
+    before = len(fake_s3(ear).puts)
+    ear.periodic_tick()
+    assert len(fake_s3(ear).puts) == before
 
 
 def test_hourly_tick_warns_on_silence_and_resets_counter(

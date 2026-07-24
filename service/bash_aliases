@@ -1,0 +1,12 @@
+# ear convenience aliases — pure spelling over systemctl/tail, no logic.
+# GENERIC: the systemd instance name is the login (ear@<login>), so one
+# file serves every ear login; `earstart` on the gnr-ear login controls
+# ear@gnr-ear. Sourced from each login's ~/.bashrc at box setup; the
+# matching sudoers drop-in (/etc/sudoers.d/<login>) grants exactly these
+# systemctl invocations for that login's instance.
+_inst="ear@$(whoami)"
+alias earstart="sudo systemctl start $_inst"
+alias earstop="sudo systemctl stop $_inst"
+alias earrestart="sudo systemctl restart $_inst"
+alias earstatus="systemctl status $_inst --no-pager"
+alias earlog='cd "$HOME"/.local/state/gridworks/ear/log && tail -F state.txt'
