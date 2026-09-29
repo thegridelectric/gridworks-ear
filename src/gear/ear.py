@@ -45,6 +45,8 @@ class Ear(ActorBase):
         self.s3_resource: S3ServiceResource | None = None
         self.messages_heard_this_hour = 0
         self.messages_heard_total = 0
+        self.last_persisted_ms = 0
+        self.same_ms_count = 0
 
         self.local_cache_dir = OUTPUT_DIRECTORY / (
             f"need_to_put/{self.settings.world_instance_alias}"
@@ -79,13 +81,28 @@ class Ear(ActorBase):
     # Dispatch — store verbatim
     # ------------------------------------------------------------------
 
+    def persisted_stamp(self) -> tuple[int, str]:
+        """The `<persisted-ms>` and `<source>` segments of the next object
+        name. Objects are named by the millisecond they are persisted, so a
+        burst inside one millisecond would collide; the first object in a
+        millisecond keeps the plain source, each further one carries its
+        arrival counter as a trailing dotted segment (`hw1.ear.2`). The name
+        keeps its four dash segments, so every reader of the grammar parses
+        it unchanged, and a reader that orders by arrival reads the counter
+        (a bare-digit segment is never part of an alias)."""
+        ms = int(time.time() * 1000)
+        if ms == self.last_persisted_ms:
+            self.same_ms_count += 1
+            return ms, f"{self.alias}.{self.same_ms_count}"
+        self.last_persisted_ms = ms
+        self.same_ms_count = 1
+        return ms, self.alias
+
     def dispatch_message(self, *, envelope: RoutingEnvelope, body: bytes) -> None:
         self.messages_heard_this_hour += 1
         self.messages_heard_total += 1
-        file_name = (
-            f"{envelope.from_alias}-{envelope.type_name}"
-            f"-{int(time.time() * 1000)}-{self.alias}.json"
-        )
+        ms, source = self.persisted_stamp()
+        file_name = f"{envelope.from_alias}-{envelope.type_name}-{ms}-{source}.json"
         self._store(file_name, body)
 
     def on_routing_key_parse_error(
@@ -97,9 +114,8 @@ class Ear(ActorBase):
         self.messages_heard_this_hour += 1
         self.messages_heard_total += 1
         LGST.warning(f"Unparseable routing key {routing_key!r}: {error}")
-        file_name = (
-            f"_unparsed_{routing_key}-{int(time.time() * 1000)}-{self.alias}.txt"
-        )
+        ms, source = self.persisted_stamp()
+        file_name = f"_unparsed_{routing_key}-{ms}-{source}.txt"
         self._store(file_name, body)
 
     def _store(self, file_name: str, body: bytes) -> None:

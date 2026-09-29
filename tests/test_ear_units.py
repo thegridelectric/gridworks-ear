@@ -65,6 +65,29 @@ def test_object_key_grammar(ear: Ear) -> None:
     assert body == b'{"TypeName": "hb.a"}'
 
 
+def test_same_millisecond_names_stay_distinct_and_ordered(
+    ear: Ear, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A burst inside one millisecond must not collide: the first object in
+    a millisecond keeps the plain name; each further one carries an arrival
+    counter as a trailing dotted segment of the source. A new millisecond
+    resets it. Four dash segments always, so every reader of the grammar
+    keeps parsing."""
+    envelope = parse_routing_key("rjb.d1-tap9.super.hb-a")
+    monkeypatch.setattr(gear.ear.time, "time", lambda: 1787846141.199)
+    for _ in range(3):
+        ear.dispatch_message(envelope=envelope, body=b"x")
+    monkeypatch.setattr(gear.ear.time, "time", lambda: 1787846141.200)
+    ear.dispatch_message(envelope=envelope, body=b"x")
+    names = [path.rsplit("/", 1)[-1] for (_, path, _) in fake_s3(ear).puts[-4:]]
+    assert names == [
+        "d1.tap9-hb.a-1787846141199-d1.tap1.json",
+        "d1.tap9-hb.a-1787846141199-d1.tap1.2.json",
+        "d1.tap9-hb.a-1787846141199-d1.tap1.3.json",
+        "d1.tap9-hb.a-1787846141200-d1.tap1.json",
+    ]
+
+
 def test_unparsed_routing_key_is_stored_verbatim(ear: Ear) -> None:
     ear.on_routing_key_parse_error(
         routing_key="broadcast.glitch", body=b"raw-bytes", error=ValueError("bad")
